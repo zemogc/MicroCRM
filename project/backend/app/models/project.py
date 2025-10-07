@@ -1,28 +1,55 @@
-from pydantic import BaseModel, field_validator
-from typing import Optional, Literal
+from sqlmodel import SQLModel, Field, Relationship
+from pydantic import field_validator
+from typing import Optional
 from datetime import datetime
 
-Status = Literal["prospecto", "en_curso", "pausado", "cerrado"]
+class ProjectBase(SQLModel):
+    name: str = Field(max_length=100)
+    description: Optional[str] = Field(default=None, max_length=150)
+    crated_by: int = Field(foreign_key="users.id")
 
-class ProjectBase(BaseModel):
-    customer_id: int
-    name: str
-    status: Status = "prospecto"
-    budget: Optional[float] = None
-    start_date: Optional[datetime] = None
-    notes: Optional[str] = None
-
-    @field_validator("budget")
+    @field_validator("name")
     @classmethod
-    def positive_budget(cls, v):
-        if v is not None and v < 0:
-            raise ValueError("Budget must be positive")
+    def validate_name(cls, v):
+        if not v or len(v.strip()) == 0:
+            raise ValueError("Project name cannot be empty")
+        if len(v) > 100:
+            raise ValueError("Project name must be 100 characters or less")
+        return v.strip()
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, v):
+        if v and len(v) > 150:
+            raise ValueError("Project description must be 150 characters or less")
         return v
+
+class Project(ProjectBase, table=True):
+    __tablename__ = "projects"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Relationships
+    creator: Optional["User"] = Relationship(back_populates="created_projects")
 
 class ProjectCreate(ProjectBase):
     pass
 
-class Project(ProjectBase):
+class ProjectUpdate(SQLModel):
+    name: Optional[str] = Field(default=None, max_length=100)
+    description: Optional[str] = Field(default=None, max_length=150)
+
+class ProjectResponse(SQLModel):
     id: int
+    name: str
+    description: Optional[str] = None
+    crated_by: int
     created_at: datetime
     updated_at: datetime
+    # Include creator information
+    creator_email: Optional[str] = None
+
+    class Config:
+        from_attributes = True
