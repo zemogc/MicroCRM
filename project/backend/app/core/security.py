@@ -4,7 +4,7 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from .settings import get_settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 ALGO = "HS256"
 
 def hash_password(p: str) -> str:
