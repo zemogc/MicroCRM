@@ -27,7 +27,10 @@ class User(UserBase, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Relationships
-    created_projects: List["Project"] = Relationship(back_populates="creator")
+    created_projects: List["Project"] = Relationship(
+        back_populates="creator",
+        sa_relationship_kwargs={"passive_deletes": True}
+    )
 
 class UserCreate(UserBase):
     pass

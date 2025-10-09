@@ -4,11 +4,11 @@ from typing import Optional
 from datetime import datetime
 
 class TaskBase(SQLModel):
-    project_id: int = Field(foreign_key="projects.id")
+    project_id: int = Field(foreign_key="projects.id", ondelete="CASCADE")
     title: str = Field(max_length=150)
     description: Optional[str] = Field(default=None, max_length=150)
     status: str = Field(default="pending", max_length=50)
-    assigned_to: Optional[int] = Field(default=None, foreign_key="users.id")
+    assigned_to: Optional[int] = Field(default=None, foreign_key="users.id", ondelete="SET NULL")
     due_date: Optional[datetime] = None
 
     @field_validator("title")
@@ -39,7 +39,7 @@ class Task(TaskBase, table=True):
     __tablename__ = "tasks"
     
     id: Optional[int] = Field(default=None, primary_key=True)
-    crated_by: int = Field(foreign_key="users.id")  # Note: keeping the typo from the diagram
+    crated_by: int = Field(foreign_key="users.id", ondelete="CASCADE")  # Note: keeping the typo from the diagram
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
 

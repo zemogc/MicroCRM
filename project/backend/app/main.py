@@ -1,7 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import SQLAlchemyError
 from .core.settings import get_settings
-from .api.routes import users, projects, tasks, roles, project_members
+from .core.exceptions import (
+    http_exception_handler,
+    validation_exception_handler,
+    sqlalchemy_exception_handler,
+    general_exception_handler
+)
+from .api.routes import auth, users, projects, tasks, roles, project_members
 
 app = FastAPI(
     title="Micro CRM API", 
@@ -10,6 +18,8 @@ app = FastAPI(
 )
 
 settings = get_settings()
+
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -17,6 +27,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Exception handlers
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
+app.add_exception_handler(Exception, general_exception_handler)
 
 @app.get("/health")
 def health():
@@ -28,6 +44,7 @@ def root():
         "message": "Micro CRM API - Gestión de Proyectos",
         "version": "0.1.0",
         "endpoints": {
+            "auth": "/api/auth",
             "users": "/api/users",
             "projects": "/api/projects", 
             "tasks": "/api/tasks",
@@ -37,6 +54,7 @@ def root():
     }
 
 # Registro de routers
+app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(projects.router, prefix="/api")
 app.include_router(tasks.router, prefix="/api")
