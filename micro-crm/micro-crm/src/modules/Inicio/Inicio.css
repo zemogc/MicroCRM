@@ -1,0 +1,64 @@
+.inicio-container {
+  text-align: center;
+  padding: 60px 20px;
+  background-color: #f9fafc;
+  min-height: 100vh;
+}
+
+.inicio-container h1 {
+  font-size: 2rem;
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+
+.inicio-container p {
+  font-size: 1.1rem;
+  color: #555;
+  margin-bottom: 40px;
+}
+
+.modulos-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 30px;
+}
+
+.modulo-card {
+  background-color: white;
+  border-radius: 12px;
+  padding: 25px 20px;
+  width: 250px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+}
+
+.modulo-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+}
+
+.modulo-card h2 {
+  font-size: 1.4rem;
+  margin-bottom: 10px;
+}
+
+.modulo-card p {
+  font-size: 0.95rem;
+  color: #666;
+}
+
+/* Color de módulo */
+.modulo-card.clientes {
+  border-top: 4px solid #3498db;
+}
+
+.modulo-card.proyectos {
+  border-top: 4px solid #27ae60;
+}
+
+.modulo-card.admin {
+  border-top: 4px solid #e67e22;
+}
