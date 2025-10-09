@@ -1,19 +1,63 @@
-from fastapi import APIRouter, HTTPException, Depends
-from sqlmodel import Session, select
-from typing import List
+from fastapi import APIRouter, HTTPException, Depends, Request, Query
+from sqlmodel import Session, select, func, col
+from typing import List, Optional
 from ...models.project import Project, ProjectCreate, ProjectUpdate, ProjectResponse
 from ...models.user import User
+from ...models.pagination import PaginatedResponse
 from ...core.database import get_session
+from ...core.auth import get_current_active_user
+from ...core.rate_limit import rate_limit_api
+from ...core.settings import get_settings
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
-@router.get("/", response_model=List[ProjectResponse])
-def list_projects(session: Session = Depends(get_session)) -> List[ProjectResponse]:
-    """Get all projects"""
-    statement = select(Project).order_by(Project.updated_at.desc())
+@router.get("/", response_model=PaginatedResponse[ProjectResponse])
+async def list_projects(
+    request: Request,
+    session: Session = Depends(get_session),
+    skip: int = Query(default=0, ge=0, description="Number of records to skip"),
+    limit: int = Query(default=10, ge=1, le=100, description="Number of records to return"),
+    order_by: str = Query(default="updated_at", description="Field to order by"),
+    order_dir: str = Query(default="desc", description="Order direction (asc or desc)"),
+    search: Optional[str] = Query(default=None, description="Search by name or description"),
+    creator_id: Optional[int] = Query(default=None, description="Filter by creator ID"),
+    current_user: User = Depends(get_current_active_user)
+) -> PaginatedResponse[ProjectResponse]:
+    """Get paginated list of projects with filtering and ordering"""
+    settings = get_settings()
+    await rate_limit_api(request, settings.rate_limit_api_per_min, str(current_user.id))
+    
+    # Base query
+    statement = select(Project)
+    
+    # Apply filters
+    if search:
+        search_filter = f"%{search}%"
+        statement = statement.where(
+            (Project.name.like(search_filter)) | (Project.description.like(search_filter))
+        )
+    
+    if creator_id is not None:
+        statement = statement.where(Project.crated_by == creator_id)
+    
+    # Get total count
+    count_statement = select(func.count()).select_from(statement.subquery())
+    total = session.exec(count_statement).one()
+    
+    # Apply ordering
+    order_column = getattr(Project, order_by, Project.updated_at)
+    if order_dir.lower() == "asc":
+        statement = statement.order_by(col(order_column).asc())
+    else:
+        statement = statement.order_by(col(order_column).desc())
+    
+    # Apply pagination
+    statement = statement.offset(skip).limit(limit)
+    
+    # Execute query
     projects = session.exec(statement).all()
     
-    # Create response with creator names
+    # Create response with creator emails
     result = []
     for project in projects:
         creator = session.get(User, project.crated_by)
@@ -21,11 +65,25 @@ def list_projects(session: Session = Depends(get_session)) -> List[ProjectRespon
         project_data['creator_email'] = creator.email if creator else "Unknown User"
         result.append(ProjectResponse.model_validate(project_data))
     
-    return result
+    return PaginatedResponse(
+        items=result,
+        total=total,
+        skip=skip,
+        limit=limit,
+        has_more=(skip + limit) < total
+    )
 
 @router.post("/", response_model=ProjectResponse, status_code=201)
-def create_project(payload: ProjectCreate, session: Session = Depends(get_session)) -> ProjectResponse:
+async def create_project(
+    request: Request,
+    payload: ProjectCreate, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
+) -> ProjectResponse:
     """Create a new project"""
+    settings = get_settings()
+    await rate_limit_api(request, settings.rate_limit_api_per_min, str(current_user.id))
+    
     # Validate that the creator user exists
     user = session.get(User, payload.crated_by)
     if not user:
@@ -44,7 +102,12 @@ def create_project(payload: ProjectCreate, session: Session = Depends(get_sessio
     return ProjectResponse.model_validate(project_data)
 
 @router.get("/{project_id}", response_model=ProjectResponse)
-def get_project(project_id: int, session: Session = Depends(get_session)) -> ProjectResponse:
+async def get_project(
+    project_id: int, 
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
+) -> ProjectResponse:
     """Get project by ID"""
     project = session.get(Project, project_id)
     if not project:
@@ -58,7 +121,13 @@ def get_project(project_id: int, session: Session = Depends(get_session)) -> Pro
     return ProjectResponse.model_validate(project_data)
 
 @router.put("/{project_id}", response_model=ProjectResponse)
-def update_project(project_id: int, payload: ProjectUpdate, session: Session = Depends(get_session)) -> ProjectResponse:
+async def update_project(
+    project_id: int, 
+    payload: ProjectUpdate, 
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
+) -> ProjectResponse:
     """Update project by ID"""
     project = session.get(Project, project_id)
     if not project:
@@ -81,7 +150,12 @@ def update_project(project_id: int, payload: ProjectUpdate, session: Session = D
     return ProjectResponse.model_validate(project_data)
 
 @router.delete("/{project_id}", status_code=204)
-def delete_project(project_id: int, session: Session = Depends(get_session)):
+async def delete_project(
+    project_id: int, 
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
+):
     """Delete project by ID"""
     project = session.get(Project, project_id)
     if not project:
