@@ -314,6 +314,35 @@ Content-Type: application/json
 DELETE /api/tasks/{task_id}
 ```
 
+#### 8. Actualizar Tareas Atrasadas (Manual) - NUEVO
+```http
+POST /api/tasks/update-overdue
+Authorization: Bearer {token}
+```
+
+Respuesta:
+```json
+{
+  "message": "Successfully updated 3 tasks to overdue status",
+  "updated_count": 3,
+  "timestamp": "2025-10-10T15:30:00.000Z"
+}
+```
+
+#### 9. Obtener Contador de Tareas Atrasadas - NUEVO
+```http
+GET /api/tasks/overdue-count
+Authorization: Bearer {token}
+```
+
+Respuesta:
+```json
+{
+  "overdue_count": 5,
+  "timestamp": "2025-10-10T15:30:00.000Z"
+}
+```
+
 ### Roles (/api/roles)
 
 #### 1. Crear Rol
@@ -419,7 +448,7 @@ DELETE /api/project-members/{member_id}
 - Email único en registro
 - Validación de campos con Pydantic
 - Foreign Key constraints en base de datos
-- Status válidos para tareas: `pending`, `in_progress`, `completed`, `cancelled`
+- Status válidos para tareas: `pending`, `in_progress`, `overdue`, `in_review`, `completed`, `cancelled`
 
 ## Comandos de Prueba
 
@@ -456,24 +485,32 @@ project/backend/
 ├── app/
 │   ├── api/
 │   │   └── routes/
+│   │       ├── auth.py           # Endpoints de autenticación
 │   │       ├── users.py          # Endpoints de usuarios
 │   │       ├── projects.py       # Endpoints de proyectos
-│   │       ├── tasks.py          # Endpoints de tareas
+│   │       ├── tasks.py          # Endpoints de tareas - CON AUTO-ACTUALIZACIÓN
 │   │       ├── roles.py          # Endpoints de roles
 │   │       └── project_members.py # Endpoints de miembros
 │   ├── core/
 │   │   ├── database.py           # Configuración MySQL
 │   │   ├── settings.py           # Variables de entorno
-│   │   └── security.py           # Autenticación y hashing
+│   │   ├── security.py           # Autenticación y hashing
+│   │   ├── auth.py               # JWT y validación de tokens
+│   │   ├── rate_limit.py         # Rate limiting para API
+│   │   ├── exceptions.py         # Manejadores de excepciones
+│   │   ├── task_automation.py    # NUEVO: Lógica de tareas atrasadas
+│   │   └── scheduler.py          # NUEVO: Scheduler automático (cada 1 hora)
 │   ├── models/
 │   │   ├── user.py               # Modelo Usuario
 │   │   ├── project.py            # Modelo Proyecto
-│   │   ├── task.py               # Modelo Tarea
+│   │   ├── task.py               # Modelo Tarea - CON 6 ESTADOS
 │   │   ├── role.py               # Modelo Rol
-│   │   └── project_member.py     # Modelo Miembro
-│   └── main.py                   # Aplicación FastAPI
+│   │   ├── project_member.py     # Modelo Miembro
+│   │   └── pagination.py         # Modelos de paginación
+│   └── main.py                   # Aplicación FastAPI - CON SCHEDULER
 ├── requirements.txt              # Dependencias Python
-└── microcrm_db_script.sql       # Script de base de datos
+├── microcrm_db_script.sql       # Script de base de datos
+└── README_MYSQL_BACKEND_INTEGRATION.md # Esta documentación
 ```
 
 ## Instalación y Uso
@@ -512,6 +549,7 @@ curl http://localhost:8000/health
 
 ## Características Implementadas
 
+### Core Features
 - Integración MySQL completa con SQLModel
 - API REST completa con CRUD para todas las entidades
 - Autenticación JWT con registro y login
@@ -522,3 +560,134 @@ curl http://localhost:8000/health
 - Endpoints especializados (tareas por proyecto, usuarios por proyecto, etc.)
 - Manejo de errores con HTTPException
 - Configuración flexible con variables de entorno
+
+### Advanced Features
+
+#### Sistema de Estados de Tareas
+- 6 estados: `pending`, `in_progress`, `overdue`, `in_review`, `completed`, `cancelled`
+- Flujo de trabajo:
+  - Por hacer → En desarrollo → En revisión → Hecho
+  - Marcado automático como "Atrasado" si la fecha vence
+
+#### Actualización Automática de Tareas Atrasadas
+- Scheduler automático: Revisa tareas cada 1 hora
+- Lógica inteligente: Solo marca como "overdue" tareas en `pending` o `in_progress`
+- Protección: Tareas en revisión, completadas o canceladas NO se modifican
+- Endpoints adicionales:
+  - `POST /api/tasks/update-overdue` - Actualización manual
+  - `GET /api/tasks/overdue-count` - Contador de tareas atrasadas
+
+#### Sistema de Permisos por Rol
+
+Owner del Proyecto:
+-  CRUD completo de tareas
+-  Gestión de miembros
+-  Cambiar cualquier estado de tarea
+-  Aprobar tareas en revisión
+-  Completar tareas directamente
+
+Colaborador:
+-  Ver todas las tareas del proyecto
+-  Actualizar SOLO estado de sus tareas asignadas
+-  Iniciar tareas (pending → in_progress)
+-  Enviar a revisión (in_progress → in_review)
+-  NO puede completar sus propias tareas
+-  NO puede editar título, descripción, asignación o fecha
+-  NO puede eliminar tareas
+
+#### Endpoints Especializados
+- `GET /api/tasks/project/{project_id}` - Tareas por proyecto (con auto-actualización)
+- `GET /api/tasks/user/{user_id}` - Tareas por usuario (con auto-actualización)
+- `GET /api/project-members/project/{project_id}` - Miembros por proyecto
+- `GET /api/project-members/user/{user_id}` - Proyectos por usuario
+
+## Flujo de Trabajo Automático
+
+### Actualización Automática de Tareas
+
+El sistema tiene 3 capas de actualización automática:
+
+#### 1. Scheduler en Background (Cada hora)
+```python
+# En app/main.py - Se inicia automáticamente con el servidor
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await start_scheduler()  # ← Inicia el scheduler
+    yield
+    await stop_scheduler()   # ← Detiene al apagar
+```
+
+Funcionalidad:
+- Se ejecuta cada 1 hora (3600 segundos)
+- Busca tareas con `due_date < now()` y status `pending` o `in_progress`
+- Las marca automáticamente como `overdue`
+- Registra en logs cuántas tareas se actualizaron
+
+#### 2. Auto-actualización en Consultas
+```python
+# Cada vez que se consultan tareas
+@router.get("/project/{project_id}")
+def list_tasks_by_project(project_id: int, ...):
+    update_overdue_tasks(session)  # ← Auto-actualización
+    # ... retorna tareas actualizadas
+```
+
+Endpoints con auto-actualización:
+- `GET /api/tasks/project/{project_id}`
+- `GET /api/tasks/user/{user_id}`
+
+#### 3. Actualización Manual
+```bash
+# Endpoint para forzar actualización
+curl -X POST "http://localhost:8000/api/tasks/update-overdue" \
+  -H "Authorization: Bearer {token}"
+```
+
+### Ejemplo de Flujo Completo
+
+```
+1. Tarea creada: "Implementar login"
+   - Status: pending
+   - Due date: 2025-10-08 23:59:59
+
+2. Usuario inicia la tarea (2025-10-07)
+   - Status: in_progress
+
+3. Fecha vence (2025-10-09 00:00:00)
+   - Scheduler detecta: due_date < now()
+   - Status automático: overdue
+
+4. Usuario envía a revisión
+   - Status: in_review
+   - YA NO se marca como overdue (protegida)
+
+5. Admin aprueba
+   - Status: completed
+```
+
+### Configuración del Scheduler
+
+Para cambiar la frecuencia de revisión:
+
+```python
+# En app/core/scheduler.py línea 54:
+await asyncio.sleep(3600)  # Cambiar este valor
+
+# Ejemplos:
+await asyncio.sleep(1800)   # 30 minutos
+await asyncio.sleep(300)    # 5 minutos  
+await asyncio.sleep(86400)  # 24 horas
+```
+
+### Reglas de Protección
+
+Tareas que NUNCA se marcan como overdue automáticamente:
+- Tareas sin `due_date`
+- Tareas en estado `in_review` (esperando aprobación)
+- Tareas `completed` (ya terminadas)
+- Tareas `cancelled` (canceladas)
+- Tareas que ya están `overdue`
+
+Solo se actualizan automáticamente:
+- Tareas en estado `pending` (por hacer)
+- Tareas en estado `in_progress` (en desarrollo)
