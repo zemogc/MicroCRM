@@ -2,15 +2,16 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import PrivateRoute from "./components/PrivateRoute";
-import Navbar from "./components/navbar";
+import Layout from "./components/Layout";
 import Login from "./modules/Auth/Login";
 import Register from "./modules/Auth/Register";
 import Inicio from "./modules/Inicio/Inicio";
 import Clientes from "./modules/Clientes/Clientes";
 import Proyectos from "./modules/Proyectos/Proyectos";
+import Tareas from "./modules/Tareas/Tareas";
 import Administracion from "./modules/Administracion/Administracion";
 import "./styles/global.css";
-import "./App.css"; // importa los ajustes de App
+import "./App.css";
 import { useState } from "react";
 
 function App() {
@@ -30,11 +31,9 @@ function App() {
             path="/"
             element={
               <PrivateRoute>
-                <Navbar />
-                {/* OJO: usamos className="app-shell" para evitar el choque */}
-                <main className="app-shell">
+                <Layout>
                   <Inicio />
-                </main>
+                </Layout>
               </PrivateRoute>
             }
           />
@@ -42,10 +41,9 @@ function App() {
             path="/clientes"
             element={
               <PrivateRoute>
-                <Navbar />
-                <main className="app-shell">
+                <Layout>
                   <Clientes setClientes={setClientes} />
-                </main>
+                </Layout>
               </PrivateRoute>
             }
           />
@@ -53,10 +51,19 @@ function App() {
             path="/proyectos"
             element={
               <PrivateRoute>
-                <Navbar />
-                <main className="app-shell">
-                  <Proyectos clientes={clientes} />
-                </main>
+                <Layout>
+                  <Proyectos />
+                </Layout>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/tareas"
+            element={
+              <PrivateRoute>
+                <Layout>
+                  <Tareas />
+                </Layout>
               </PrivateRoute>
             }
           />
@@ -64,10 +71,9 @@ function App() {
             path="/admin"
             element={
               <PrivateRoute>
-                <Navbar />
-                <main className="app-shell">
+                <Layout>
                   <Administracion />
-                </main>
+                </Layout>
               </PrivateRoute>
             }
           />
