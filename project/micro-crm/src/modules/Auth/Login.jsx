@@ -132,15 +132,6 @@ const Login = () => {
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div className="form-check form-switch">
-                      <input className="form-check-input" type="checkbox" id="flexSwitchCheckChecked" />
-                      <label className="form-check-label" htmlFor="flexSwitchCheckChecked">Recordarme</label>
-                    </div>
-                    <a href="#" style={{ textAlign: 'right' }}>¿Olvidaste tu contraseña?</a>
-                  </div>
-                </div>
 
                 <div className="form-group">
                   <div className="d-grid">
