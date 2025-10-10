@@ -1,6 +1,6 @@
 * {
-  margin: 0;
-  padding: 0;
+  margin: 8px;
+  padding: 7px;
   box-sizing: border-box;
 }
 
@@ -47,6 +47,7 @@ body {
 /* Contenedor principal */
 .container {
   padding: 2rem;
+  
 }
 
 /* Tarjetas */
