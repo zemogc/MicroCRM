@@ -1,0 +1,138 @@
+:root{
+  --cf-max: 980px;         /* antes 860px -> más ancho */
+  --cf-gap: 18px;          /* más separación vertical/horizontal */
+  --cf-pad: 26px;          /* padding del contenedor */
+  --cf-radius: 14px;
+  --cf-shadow: 0 18px 36px rgba(2, 6, 23, .12);
+  --cf-border: #e7e9ee;
+
+  --cf-text: #0f172a;
+  --cf-muted: #475569;     /* un poco más “fuerte” para legibilidad */
+  --cf-surface: #ffffff;
+
+  --cf-ok-bg: #e6ffed;
+  --cf-ok-fg: #127c39;
+  --cf-err-bg: #ffecec;
+  --cf-err-fg: #b91c1c;
+
+  --cf-ring: 59 130 246;   /* rgb del azul para el focus */
+}
+
+/* Contenedor principal del formulario */
+.cliente-form{
+  max-width: var(--cf-max);
+  margin: 0 auto;
+  background: var(--cf-surface);
+  border: 1px solid var(--cf-border);
+  border-radius: var(--cf-radius);
+  box-shadow: var(--cf-shadow);
+  padding: var(--cf-pad);
+  color: var(--cf-text);
+}
+
+/* Aumentamos la escala general del formulario */
+.cliente-form__form{
+  font-size: 1.06rem;         /* ↑ tamaño base del texto */
+  line-height: 1.5;
+}
+
+/* Título */
+.cliente-form__title{
+  margin: 0 0 14px;
+  font-size: 1.55rem;         /* antes 1.35rem */
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+/* Alertas */
+.cliente-form__alert{
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 1rem;            /* un pelín más grande */
+}
+.cliente-form__alert--ok{
+  background: var(--cf-ok-bg);
+  color: var(--cf-ok-fg);
+  border: 1px solid #c9f5d3;
+}
+.cliente-form__alert--err{
+  background: var(--cf-err-bg);
+  color: var(--cf-err-fg);
+  border: 1px solid #f5c9c9;
+}
+
+/* Grid de campos */
+.cliente-form__grid{
+  display: grid;
+  gap: var(--cf-gap);
+  grid-template-columns: 1fr;
+  margin-bottom: 18px;
+}
+@media (min-width: 760px){
+  .cliente-form__grid{ grid-template-columns: 1fr 1fr; }
+}
+.field{ display: grid; gap: 8px; }
+.field--full{ grid-column: 1 / -1; }
+
+/* Labels e inputs (más grandes y cómodos) */
+.field label{
+  font-size: 1rem;            /* antes .95rem */
+  color: var(--cf-muted);
+}
+
+.field input,
+.field select{
+  width: 100%;
+  padding: 14px 16px;         /* antes 12x14 */
+  border: 1px solid #cfd6e4;
+  border-radius: 12px;
+  font-size: 1.07rem;         /* antes 1rem */
+  line-height: 1.5;
+  outline: none;
+  background: #fff;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.field input::placeholder{ color: #94a3b8; }
+
+.field input:focus,
+.field select:focus{
+  border-color: rgb(var(--cf-ring));
+  box-shadow: 0 0 0 4px rgba(var(--cf-ring), .18);
+}
+
+/* Fieldset proyecto */
+.cliente-form__fieldset{
+  border: 1px dashed #cfd6e4;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 8px 0 18px;
+}
+.cliente-form__fieldset legend{
+  padding: 0 8px;
+  font-size: 1rem;
+  color: var(--cf-muted);
+}
+
+/* Acciones */
+.cliente-form__actions{
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* Botón secundario “ghost” */
+.btn.btn--ghost{
+  background: transparent;
+  color: #111827;
+  border: 1px solid #cfd6e4;
+}
+.btn.btn--ghost:hover{ background: #f7f9fc; }
+
+/* También agrandamos los .btn globales cuando estén dentro del formulario */
+.cliente-form .btn{
+  padding: 0.8rem 1.25rem;    /* antes 0.6 x 1.2 aprox (global) */
+  font-size: 1.02rem;
+  border-radius: 10px;
+}

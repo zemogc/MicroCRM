@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import "./ClienteForm.css";
 
 export default function ClienteForm({ clientes = [], editClient = null, onSave, onCancelEdit }) {
   const [nombre, setNombre] = useState("");
@@ -9,7 +10,6 @@ export default function ClienteForm({ clientes = [], editClient = null, onSave, 
   const [projNombre, setProjNombre] = useState("");
   const [projValor, setProjValor] = useState("");
   const [projEtapa, setProjEtapa] = useState("contacto inicial");
-
   const [mensaje, setMensaje] = useState("");
 
   useEffect(() => {
@@ -19,7 +19,9 @@ export default function ClienteForm({ clientes = [], editClient = null, onSave, 
       setCorreo(editClient.correo || "");
       setTelefono(editClient.telefono || "");
       setDireccion(editClient.direccion || "");
-    
+      setProjNombre("");
+      setProjValor("");
+      setProjEtapa("contacto inicial");
     } else {
       setNombre(""); setEmpresa(""); setCorreo(""); setTelefono(""); setDireccion("");
       setProjNombre(""); setProjValor(""); setProjEtapa("contacto inicial");
@@ -27,14 +29,11 @@ export default function ClienteForm({ clientes = [], editClient = null, onSave, 
   }, [editClient]);
 
   const validarCorreo = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-  const esDuplicado = (email) => {
-    return clientes.some(c => c.correo?.toLowerCase() === email.toLowerCase() && c.id !== editClient?.id);
-  };
+  const esDuplicado = (email) =>
+    clientes.some(c => c.correo?.toLowerCase() === email.toLowerCase() && c.id !== editClient?.id);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Validaciones
     if (!nombre.trim() || !empresa.trim() || !correo.trim() || !direccion.trim()) {
       setMensaje("Por favor complete todos los campos obligatorios (nombre, empresa, correo, dirección).");
       return;
@@ -48,7 +47,6 @@ export default function ClienteForm({ clientes = [], editClient = null, onSave, 
       return;
     }
 
-    // construimos el objeto cliente (sin id: parent lo generará o usará el existente)
     const clientePayload = {
       nombre: nombre.trim(),
       empresa: empresa.trim(),
@@ -57,7 +55,6 @@ export default function ClienteForm({ clientes = [], editClient = null, onSave, 
       direccion: direccion.trim()
     };
 
-    // creamos proyecto opcional solo si se escribio nombre de proyecto
     let proyectoPayload = null;
     if (projNombre.trim()) {
       proyectoPayload = {
@@ -70,60 +67,99 @@ export default function ClienteForm({ clientes = [], editClient = null, onSave, 
     onSave(clientePayload, proyectoPayload);
     setMensaje(editClient ? "Cliente actualizado." : "Cliente registrado.");
 
-    // limpiar formulario
     if (!editClient) {
       setNombre(""); setEmpresa(""); setCorreo(""); setTelefono(""); setDireccion("");
       setProjNombre(""); setProjValor(""); setProjEtapa("contacto inicial");
     }
-    // limpiar mensaje
     setTimeout(() => setMensaje(""), 3000);
   };
 
   return (
-    <div className="card">
-      {mensaje && <div style={{padding:8, marginBottom:12, borderRadius:6, backgroundColor: mensaje.includes("registrado") || mensaje.includes("actualizado") ? "#e6ffed" : "#ffecec", color: mensaje.includes("registrado") || mensaje.includes("actualizado") ? "green" : "crimson"}}>{mensaje}</div>}
-      <form onSubmit={handleSubmit}>
-        <h3>{editClient ? "Editar Cliente" : "Registrar Cliente"}</h3>
+    <section className="cliente-form">
+      {mensaje && (
+        <div
+          className={`cliente-form__alert ${
+            mensaje.includes("registrado") || mensaje.includes("actualizado")
+              ? "cliente-form__alert--ok"
+              : "cliente-form__alert--err"
+          }`}
+          role="status"
+        >
+          {mensaje}
+        </div>
+      )}
 
-        <label>Nombre *</label>
-        <input value={nombre} onChange={e => setNombre(e.target.value)} />
+      <form onSubmit={handleSubmit} className="cliente-form__form">
+        <h3 className="cliente-form__title">
+          {editClient ? "Editar Cliente" : "Registrar Cliente"}
+        </h3>
 
-        <label>Empresa *</label>
-        <input value={empresa} onChange={e => setEmpresa(e.target.value)} />
+        <div className="cliente-form__grid">
+          <div className="field">
+            <label htmlFor="cf-nombre">Nombre *</label>
+            <input id="cf-nombre" value={nombre} onChange={e => setNombre(e.target.value)} />
+          </div>
 
-        <label>Correo *</label>
-        <input type="email" value={correo} onChange={e => setCorreo(e.target.value)} />
+          <div className="field">
+            <label htmlFor="cf-empresa">Empresa *</label>
+            <input id="cf-empresa" value={empresa} onChange={e => setEmpresa(e.target.value)} />
+          </div>
 
-        <label>Teléfono</label>
-        <input value={telefono} onChange={e => setTelefono(e.target.value)} />
+          <div className="field">
+            <label htmlFor="cf-correo">Correo *</label>
+            <input id="cf-correo" type="email" value={correo} onChange={e => setCorreo(e.target.value)} />
+          </div>
 
-        <label>Dirección *</label>
-        <input value={direccion} onChange={e => setDireccion(e.target.value)} />
+          <div className="field">
+            <label htmlFor="cf-telefono">Teléfono</label>
+            <input id="cf-telefono" value={telefono} onChange={e => setTelefono(e.target.value)} />
+          </div>
 
-        <hr style={{margin:"12px 0"}} />
+          <div className="field field--full">
+            <label htmlFor="cf-direccion">Dirección *</label>
+            <input id="cf-direccion" value={direccion} onChange={e => setDireccion(e.target.value)} />
+          </div>
+        </div>
 
-        <h4>Información de proyecto (opcional)</h4><br></br>
+        <fieldset className="cliente-form__fieldset">
+          <legend>Información de proyecto (opcional)</legend>
 
-        <label>Nombre del proyecto</label>
-        <input value={projNombre} onChange={e => setProjNombre(e.target.value)} />
+          <div className="cliente-form__grid">
+            <div className="field">
+              <label htmlFor="cf-proj-nombre">Nombre del proyecto</label>
+              <input id="cf-proj-nombre" value={projNombre} onChange={e => setProjNombre(e.target.value)} />
+            </div>
 
-        <label>Valor estimado</label>
-        <input type="number" value={projValor} onChange={e => setProjValor(e.target.value)} />
+            <div className="field">
+              <label htmlFor="cf-proj-valor">Valor estimado</label>
+              <input id="cf-proj-valor" type="number" value={projValor} onChange={e => setProjValor(e.target.value)} />
+            </div>
 
-        <label>Etapa</label><br></br>
-        <select value={projEtapa} onChange={e => setProjEtapa(e.target.value)}>
-          <option value="contacto inicial">Contacto inicial</option>
-          <option value="propuesta enviada">Propuesta enviada</option>
-          <option value="negociación">Negociación</option>
-          <option value="estado positivo">Estado positivo</option>
-          <option value="estado negativo">Estado negativo</option>
-        </select>
+            <div className="field field--full">
+              <label htmlFor="cf-proj-etapa">Etapa</label>
+              <select id="cf-proj-etapa" value={projEtapa} onChange={e => setProjEtapa(e.target.value)}>
+                <option value="contacto inicial">Contacto inicial</option>
+                <option value="propuesta enviada">Propuesta enviada</option>
+                <option value="negociación">Negociación</option>
+                <option value="estado positivo">Estado positivo</option>
+                <option value="estado negativo">Estado negativo</option>
+              </select>
+            </div>
+          </div>
+        </fieldset>
 
-        <div style={{marginTop:12}}>
-          <button className="btn" type="submit">{editClient ? "Actualizar Cliente" : "Registrar Cliente"}</button>
-          {editClient && <button type="button" style={{marginLeft:10}} className="btn" onClick={onCancelEdit}>Cancelar</button>}
+        <div className="cliente-form__actions">
+          <button className="btn" type="submit">
+            {editClient ? "Actualizar Cliente" : "Registrar Cliente"}
+          </button>
+
+          {editClient && (
+            <button type="button" className="btn btn--ghost" onClick={onCancelEdit}>
+              Cancelar
+            </button>
+          )}
         </div>
       </form>
-    </div>
+    </section>
   );
 }
