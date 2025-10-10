@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
+from contextlib import asynccontextmanager
 from .core.settings import get_settings
 from .core.exceptions import (
     http_exception_handler,
@@ -9,12 +10,25 @@ from .core.exceptions import (
     sqlalchemy_exception_handler,
     general_exception_handler
 )
+from .core.scheduler import start_scheduler, stop_scheduler
 from .api.routes import auth, users, projects, tasks, roles, project_members
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan events"""
+    # Startup
+    await start_scheduler()
+    yield
+    # Shutdown
+    await stop_scheduler()
+
 
 app = FastAPI(
     title="Micro CRM API", 
     version="0.1.0",
-    description="API para gestión de proyectos y tareas - CRM de proyectos"
+    description="API para gestión de proyectos y tareas - CRM de proyectos",
+    lifespan=lifespan
 )
 
 settings = get_settings()
