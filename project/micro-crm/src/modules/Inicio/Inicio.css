@@ -1,0 +1,156 @@
+/* ===== Variables ===== */
+:root{
+  /* si tu navbar es fija, pon su altura real aquí (p.ej. 64px) */
+  --navbar-h: 0px;
+
+  --bg: #f5f6fb;
+  --surface: #ffffff;
+  --text: #111827;
+  --muted: #6b7280;
+  --ring: #3b82f6;
+  --shadow: 0 10px 24px rgba(2, 6, 23, .08);
+  --radius: 18px;
+
+  --c-clientes: #6366f1;
+  --c-proyectos: #22c55e;
+  --c-admin:    #f59e0b;
+
+  /* --- DESPLAZAMIENTO A LA DERECHA --- */
+  /* cuanto mover el bloque respecto al centro. prueba 12–24px */
+  --nudge-x: 16px;
+  /* ancho máximo del contenido */
+  --content-max: 1200px;
+  /* padding interno base */
+  --pad-x: 32px;
+}
+
+/* ===== Reset mínimo ===== */
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); }
+
+/* ===== Layout principal ===== */
+.inicio{
+  min-height: calc(100vh - var(--navbar-h)); /* llena pantalla */
+  display: block;
+}
+
+/* 
+   Truco de centrado con desplazamiento:
+   - Calculamos el margen que centraría el bloque: (100% - width)/2
+   - Le SUMAMOS nudge a la izquierda y se lo RESTAMOS a la derecha
+   - Funciona con width fluido usando min( maxWidth, 100% )
+*/
+.container{
+  width: min(var(--content-max), 100%);
+  /* márgenes asimétricos = centro + nudge */
+  margin-left: calc((100% - min(var(--content-max), 100%)) / 2 + var(--nudge-x));
+  margin-right: calc((100% - min(var(--content-max), 100%)) / 2 - var(--nudge-x));
+
+  padding: 16px var(--pad-x) 40px var(--pad-x);
+}
+
+/* desactivar nudge en pantallas medianas/pequeñas para mantener simetría */
+@media (max-width: 1100px){
+  :root{ --nudge-x: 0px; }
+}
+
+/* ===== Hero ===== */
+.hero{
+  margin: 8px 0 16px;
+  text-align: center;
+}
+
+.hero__title{
+  margin: 0 0 8px;
+  font-weight: 800;
+  font-size: clamp(1.9rem, 2.2vw + 1rem, 2.6rem);
+  line-height: 1.1;
+}
+
+.hero__strip{
+  display: inline-block;
+  padding: .2rem .6rem;
+  background: linear-gradient(180deg, rgba(59,130,246,.15), rgba(59,130,246,0)) top/100% 55% no-repeat;
+  border-radius: .6rem;
+}
+
+.hero__subtitle{
+  margin: 0;
+  color: var(--muted);
+}
+
+/* ===== Grid de tarjetas ===== */
+.grid{
+  margin-top: 8px;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1fr; /* 1 col móvil */
+}
+
+@media (min-width: 768px){
+  .grid{ grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1100px){
+  .grid{ grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ===== Tarjetas ===== */
+.card{
+  text-decoration: none;
+  background: var(--surface);
+  border: 1px solid #eef0f4;
+  border-radius: var(--radius);
+  padding: 18px 16px;
+  box-shadow: var(--shadow);
+  position: relative;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  color: inherit;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-height: 136px;
+}
+
+.card::before{
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: #e5e7eb;
+}
+
+.card--clientes::before { background: linear-gradient(90deg, var(--c-clientes), #8b5cf6); }
+.card--proyectos::before{ background: linear-gradient(90deg, var(--c-proyectos), #10b981); }
+.card--admin::before   { background: linear-gradient(90deg, var(--c-admin), #f97316); }
+
+.card:hover{
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px rgba(2, 6, 23, .12);
+  border-color: #e6e9f0;
+}
+
+.card:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--ring) 30%, transparent), var(--shadow);
+  transform: translateY(-2px);
+}
+
+.card__icon{ font-size: 1.6rem; opacity: .95; }
+.card__title{ margin: 0; font-weight: 700; font-size: 1.15rem; }
+.card__desc{ margin: 0; color: var(--muted); line-height: 1.35; }
+
+/* ===== Dark (opcional) ===== */
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg: #0f172a;
+    --surface: #0b1220;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --shadow: 0 10px 24px rgba(0,0,0,.35);
+  }
+  .card{ border-color: #0f1a2e; }
+  .card:hover{ border-color: #14223d; }
+}
