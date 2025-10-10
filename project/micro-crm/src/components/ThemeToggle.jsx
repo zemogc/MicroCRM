@@ -7,18 +7,18 @@ const ThemeToggle = ({ className = '' }) => {
   const { theme, toggleTheme, isDark } = useTheme();
 
   return (
-    <button
-      className={`theme-toggle ${className}`}
-      onClick={toggleTheme}
-      title={`Cambiar a tema ${isDark ? 'claro' : 'oscuro'}`}
-      aria-label={`Cambiar a tema ${isDark ? 'claro' : 'oscuro'}`}
-    >
-      {isDark ? (
-        <Sun size={28} strokeWidth={3} />
-      ) : (
-        <Moon size={28} strokeWidth={3} />
-      )}
-    </button>
+        <button
+          className={`theme-toggle ${className}`}
+          onClick={toggleTheme}
+          title={`Cambiar a tema ${isDark ? 'claro' : 'oscuro'}`}
+          aria-label={`Cambiar a tema ${isDark ? 'claro' : 'oscuro'}`}
+        >
+          {isDark ? (
+            <Sun size={28} strokeWidth={3} />
+          ) : (
+            <Moon size={28} strokeWidth={3} />
+          )}
+        </button>
   );
 };
 
