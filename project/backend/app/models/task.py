@@ -30,7 +30,7 @@ class TaskBase(SQLModel):
     @field_validator("status")
     @classmethod
     def validate_status(cls, v):
-        valid_statuses = ["pending", "in_progress", "completed", "cancelled"]
+        valid_statuses = ["pending", "in_progress", "overdue", "in_review", "completed", "cancelled"]
         if v not in valid_statuses:
             raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
         return v
@@ -52,6 +52,15 @@ class TaskUpdate(SQLModel):
     status: Optional[str] = Field(default=None, max_length=50)
     assigned_to: Optional[int] = None
     due_date: Optional[datetime] = None
+    
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v):
+        if v is not None:  # Solo validar si se proporciona un status
+            valid_statuses = ["pending", "in_progress", "overdue", "in_review", "completed", "cancelled"]
+            if v not in valid_statuses:
+                raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
+        return v
 
 class TaskResponse(SQLModel):
     id: int
