@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from sqlmodel import Session, select, func, col
 from typing import List, Optional
+from datetime import datetime
 from ...models.task import Task, TaskCreate, TaskUpdate, TaskResponse
 from ...models.project import Project
 from ...models.user import User
@@ -9,6 +10,7 @@ from ...core.database import get_session
 from ...core.auth import get_current_active_user
 from ...core.rate_limit import rate_limit_api
 from ...core.settings import get_settings
+from ...core.task_automation import update_overdue_tasks, get_overdue_tasks_count
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -103,6 +105,9 @@ def list_tasks_by_project(project_id: int, session: Session = Depends(get_sessio
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
+    # Auto-update overdue tasks before returning
+    update_overdue_tasks(session)
+    
     statement = select(Task).where(Task.project_id == project_id).order_by(Task.created_at.desc())
     tasks = session.exec(statement).all()
     return [enrich_task_response(task, session) for task in tasks]
@@ -186,7 +191,51 @@ def list_tasks_by_user(user_id: int, session: Session = Depends(get_session)) ->
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Auto-update overdue tasks before returning
+    update_overdue_tasks(session)
+    
     statement = select(Task).where(Task.assigned_to == user_id).order_by(Task.created_at.desc())
     tasks = session.exec(statement).all()
     return [enrich_task_response(task, session) for task in tasks]
+
+@router.post("/update-overdue")
+async def update_overdue_tasks_endpoint(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
+) -> dict:
+    """Update tasks to overdue status if their due date has passed"""
+    settings = get_settings()
+    await rate_limit_api(request, settings.rate_limit_api_per_min, str(current_user.id))
+    
+    try:
+        updated_count = update_overdue_tasks(session)
+        
+        return {
+            "message": f"Successfully updated {updated_count} tasks to overdue status",
+            "updated_count": updated_count,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating overdue tasks: {str(e)}")
+
+@router.get("/overdue-count")
+async def get_overdue_count(
+    request: Request,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_active_user)
+) -> dict:
+    """Get count of tasks that should be marked as overdue"""
+    settings = get_settings()
+    await rate_limit_api(request, settings.rate_limit_api_per_min, str(current_user.id))
+    
+    try:
+        overdue_count = get_overdue_tasks_count(session)
+        
+        return {
+            "overdue_count": overdue_count,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting overdue count: {str(e)}")
 
