@@ -1,9 +1,12 @@
 from sqlmodel import SQLModel, Field, Relationship
 from pydantic import EmailStr, field_validator
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 import re
 
+if TYPE_CHECKING:
+    from .project import Project
+    
 # Password regex: min 8 chars, at least 1 uppercase, 1 lowercase, 1 number
 # Allows letters, numbers and special chars: @$!%*?&._-#
 PASSWORD_RE = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&._\-#]{8,}$")
