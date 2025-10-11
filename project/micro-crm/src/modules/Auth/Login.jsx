@@ -33,7 +33,19 @@ const Login = () => {
       await login(formData);
       navigate('/');
     } catch (err) {
-      setError(typeof err === 'string' ? err : 'Error al iniciar sesión. Verifica tus credenciales.');
+      // Handle detailed error messages from backend
+      if (err && err.response && err.response.data) {
+        const errorData = err.response.data;
+        if (typeof errorData.detail === 'string') {
+          setError(errorData.detail);
+        } else {
+          setError('Error al iniciar sesión. Verifica tus credenciales.');
+        }
+      } else if (typeof err === 'string') {
+        setError(err);
+      } else {
+        setError('Error al iniciar sesión. Verifica tus credenciales.');
+      }
     } finally {
       setLoading(false);
     }

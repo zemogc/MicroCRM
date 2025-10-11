@@ -67,13 +67,42 @@ const Register = () => {
       await register(registerData);
       navigate('/');
     } catch (err) {
-      setError(typeof err === 'string' ? err : 'Error al registrar usuario. Intenta con otro correo.');
+      // Handle detailed error messages from backend validation
+      if (err && err.response && err.response.data) {
+        const errorData = err.response.data;
+        // Check for validation errors
+        if (errorData.detail && Array.isArray(errorData.detail)) {
+          // Pydantic validation errors format
+          const passwordError = errorData.detail.find(e => e.loc && e.loc.includes('password'));
+          if (passwordError) {
+            setError(passwordError.msg || 'Error de validación de contraseña');
+          } else {
+            setError(errorData.detail[0].msg || 'Error de validación');
+          }
+        } else if (typeof errorData.detail === 'string') {
+          setError(errorData.detail);
+        } else {
+          setError('Error al registrar usuario. Intenta con otro correo.');
+        }
+      } else if (typeof err === 'string') {
+        setError(err);
+      } else {
+        setError('Error al registrar usuario. Por favor verifica los datos.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const passwordStrength = formData.password.length >= 6;
+  // Password validation states
+  const passwordChecks = {
+    length: formData.password.length >= 8,
+    lowercase: /[a-z]/.test(formData.password),
+    uppercase: /[A-Z]/.test(formData.password),
+    number: /\d/.test(formData.password),
+    validChars: /^[a-zA-Z\d@$!%*?&._\-#]*$/.test(formData.password)
+  };
+  const passwordStrength = Object.values(passwordChecks).every(check => check);
   const passwordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword.length > 0;
 
   return (
@@ -183,16 +212,32 @@ const Register = () => {
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
-                  <div className="validation-text">
-                    {passwordStrength ? (
-                      <>
-                        <CheckCircle size={16} className="success-icon" />
-                        <span className="success-text">Contraseña válida (mínimo 8 caracteres)</span>
-                      </>
-                    ) : (
-                      <span className="hint-text">Mínimo 8 caracteres</span>
-                    )}
-                  </div>
+                  {formData.password.length > 0 && (
+                    <div className="validation-text" style={{ marginTop: '8px' }}>
+                      <div style={{ fontSize: '0.85rem', marginBottom: '4px' }}>
+                        <div style={{ color: passwordChecks.length ? '#28a745' : '#6c757d' }}>
+                          {passwordChecks.length ? '✓' : '○'} Mínimo 8 caracteres
+                        </div>
+                        <div style={{ color: passwordChecks.uppercase ? '#28a745' : '#6c757d' }}>
+                          {passwordChecks.uppercase ? '✓' : '○'} Una letra MAYÚSCULA
+                        </div>
+                        <div style={{ color: passwordChecks.lowercase ? '#28a745' : '#6c757d' }}>
+                          {passwordChecks.lowercase ? '✓' : '○'} Una letra minúscula
+                        </div>
+                        <div style={{ color: passwordChecks.number ? '#28a745' : '#6c757d' }}>
+                          {passwordChecks.number ? '✓' : '○'} Un número
+                        </div>
+                        <div style={{ color: passwordChecks.validChars ? '#28a745' : '#6c757d' }}>
+                          {passwordChecks.validChars ? '✓' : '○'} Solo caracteres permitidos (letras, números, @$!%*?&._-#)
+                        </div>
+                      </div>
+                      {passwordStrength && (
+                        <div style={{ color: '#28a745', fontWeight: '500', marginTop: '4px' }}>
+                          ✓ Contraseña válida
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-group">

@@ -4,7 +4,9 @@ from typing import Optional, List
 from datetime import datetime
 import re
 
-PASSWORD_RE = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$")
+# Password regex: min 8 chars, at least 1 uppercase, 1 lowercase, 1 number
+# Allows letters, numbers and special chars: @$!%*?&._-#
+PASSWORD_RE = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&._\-#]{8,}$")
 
 class UserBase(SQLModel):
     name: str = Field(max_length=100)
@@ -15,8 +17,16 @@ class UserBase(SQLModel):
     @field_validator("password")
     @classmethod
     def validate_password(cls, v):
-        if not PASSWORD_RE.match(v):
-            raise ValueError("Password must be at least 8 characters with uppercase, lowercase, and number")
+        if len(v) < 8:
+            raise ValueError("La contraseña debe tener al menos 8 caracteres")
+        if not re.search(r'[a-z]', v):
+            raise ValueError("La contraseña debe contener al menos una letra minúscula")
+        if not re.search(r'[A-Z]', v):
+            raise ValueError("La contraseña debe contener al menos una letra MAYÚSCULA")
+        if not re.search(r'\d', v):
+            raise ValueError("La contraseña debe contener al menos un número")
+        if not re.match(r'^[a-zA-Z\d@$!%*?&._\-#]+$', v):
+            raise ValueError("La contraseña solo puede contener letras, números y los caracteres especiales: @$!%*?&._-#")
         return v
 
 class User(UserBase, table=True):
@@ -59,8 +69,16 @@ class UserRegister(SQLModel):
     @field_validator("password")
     @classmethod
     def validate_password(cls, v):
-        if not PASSWORD_RE.match(v):
-            raise ValueError("Password must be at least 8 characters with uppercase, lowercase, and number")
+        if len(v) < 8:
+            raise ValueError("La contraseña debe tener al menos 8 caracteres")
+        if not re.search(r'[a-z]', v):
+            raise ValueError("La contraseña debe contener al menos una letra minúscula")
+        if not re.search(r'[A-Z]', v):
+            raise ValueError("La contraseña debe contener al menos una letra MAYÚSCULA")
+        if not re.search(r'\d', v):
+            raise ValueError("La contraseña debe contener al menos un número")
+        if not re.match(r'^[a-zA-Z\d@$!%*?&._\-#]+$', v):
+            raise ValueError("La contraseña solo puede contener letras, números y los caracteres especiales: @$!%*?&._-#")
         return v
 
 class UserLogin(SQLModel):

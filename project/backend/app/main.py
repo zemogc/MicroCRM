@@ -28,7 +28,10 @@ app = FastAPI(
     title="Micro CRM API", 
     version="0.1.0",
     description="API para gestión de proyectos y tareas - CRM de proyectos",
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json"
 )
 
 settings = get_settings()
