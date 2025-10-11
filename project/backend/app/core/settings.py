@@ -1,6 +1,10 @@
 from functools import lru_cache
 from pydantic import BaseModel
+from dotenv import load_dotenv
 import os
+
+# Load environment variables from .env file
+load_dotenv()
 
 class Settings(BaseModel):
     secret_key: str = os.getenv("SECRET_KEY", "devsecret")
