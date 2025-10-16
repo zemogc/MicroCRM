@@ -11,7 +11,7 @@ from .core.exceptions import (
     general_exception_handler
 )
 from .core.scheduler import start_scheduler, stop_scheduler
-from .api.routes import auth, users, projects, tasks, roles, project_members
+from .api.routes import auth, users, projects, tasks, project_members, project_roles
 
 
 @asynccontextmanager
@@ -67,8 +67,8 @@ def root():
             "users": "/api/users",
             "projects": "/api/projects", 
             "tasks": "/api/tasks",
-            "roles": "/api/roles",
-            "project_members": "/api/project-members"
+            "project_members": "/api/project-members",
+            "project_roles": "/api/project-roles"
         }
     }
 
@@ -77,5 +77,5 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(projects.router, prefix="/api")
 app.include_router(tasks.router, prefix="/api")
-app.include_router(roles.router, prefix="/api")
 app.include_router(project_members.router, prefix="/api")
+app.include_router(project_roles.router, prefix="/api")

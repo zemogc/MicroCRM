@@ -29,7 +29,7 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
   const [tasks, setTasks] = useState([]);
   const [allUsers, setAllUsers] = useState([]); // Todos los usuarios para agregar miembros
   const [projectUsers, setProjectUsers] = useState([]); // Solo usuarios del proyecto para asignar tareas
-  const [roles, setRoles] = useState([]);
+  const [projectRoles, setProjectRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
@@ -42,9 +42,8 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
   // Formularios
   const [memberForm, setMemberForm] = useState({
     user_id: "",
-    role_id: "",
-    project_id: proyecto.id,
-    added_by: user?.id || 0
+    project_role_id: "",
+    project_id: proyecto.id
   });
   
   const [taskForm, setTaskForm] = useState({
@@ -56,7 +55,7 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
     due_date: null
   });
 
-  const isOwner = proyecto.crated_by === user?.id;
+  const isOwner = proyecto.id_user === user?.id;
 
   useEffect(() => {
     fetchProjectData();
@@ -67,50 +66,45 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
       setLoading(true);
       setError("");
       
-      // Cargar miembros, tareas, usuarios y roles en paralelo
-      const [membersRes, tasksRes, usersRes, rolesRes] = await Promise.all([
+      // Cargar miembros, tareas, usuarios y roles del proyecto en paralelo
+      const [membersRes, tasksRes, usersRes, projectRolesRes] = await Promise.all([
         api.get(`/api/project-members/project/${proyecto.id}`),
         api.get(`/api/tasks/project/${proyecto.id}`),
         api.get("/api/users/", { params: { limit: 100 } }),
-        api.get("/api/roles/")
+        api.get(`/api/project-roles/project/${proyecto.id}`)
       ]);
       
-      const membersData = membersRes.data;
+      const membersData = membersRes.data || [];
       const allUsersData = usersRes.data.items || [];
-      const rolesData = rolesRes.data || []; // Los roles vienen directamente, no en .items
       
-      // Encontrar el creador del proyecto
-      const creator = allUsersData.find(u => u.id === proyecto.crated_by);
-      
-      // Agregar el creador a la lista de miembros como "Admin" (rol 1)
+      // Agregar el creador del proyecto como miembro con rol especial
+      const creator = allUsersData.find(u => u.id === proyecto.id_user);
       const creatorAsMember = {
         id: 0, // ID temporal para el creador
         project_id: proyecto.id,
-        user_id: proyecto.crated_by,
-        role_id: 1, // Admin
-        user_name: creator?.name || proyecto.creator_email || "Desconocido",
-        role_name: "Admin (Creador)",
-        added_by_name: "Sistema",
+        user_id: proyecto.id_user,
+        project_role_id: 0, // Rol especial para creador
+        user_name: creator?.name || proyecto.creator_name || "Desconocido",
+        user_email: creator?.email || proyecto.creator_email || "",
+        role_name: "Creador",
+        role_description: "Creador del proyecto",
         created_at: proyecto.created_at,
         isCreator: true // Flag para identificarlo
       };
       
-      // Combinar creador + miembros del proyecto
-      const allMembers = [creatorAsMember, ...membersData];
-      
-      setMembers(allMembers);
+      // Combinar creador con otros miembros
+      setMembers([creatorAsMember, ...membersData]);
       setTasks(tasksRes.data);
       setAllUsers(allUsersData);
-      setRoles(rolesData);
+      // Usar roles del proyecto desde la API
+      const projectRolesData = projectRolesRes.data || [];
+      setProjectRoles(projectRolesData);
       
       // Crear lista de usuarios del proyecto (para asignar tareas)
-      // Incluye a los miembros + el creador del proyecto
-      const memberUserIds = membersData.map(m => m.user_id);
-      if (!memberUserIds.includes(proyecto.crated_by)) {
-        memberUserIds.push(proyecto.crated_by);
-      }
-      
-      const projectUsersFiltered = allUsersData.filter(u => memberUserIds.includes(u.id));
+      // Incluye al creador y todos los miembros del proyecto
+      const allProjectMembers = [creatorAsMember, ...membersData];
+      const projectUserIds = allProjectMembers.map(member => member.user_id);
+      const projectUsersFiltered = allUsersData.filter(u => projectUserIds.includes(u.id));
       setProjectUsers(projectUsersFiltered);
       
     } catch (err) {
@@ -131,9 +125,8 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
       setShowAddMemberModal(false);
       setMemberForm({
         user_id: "",
-        role_id: "",
-        project_id: proyecto.id,
-        added_by: user?.id || 0
+        project_role_id: "",
+        project_id: proyecto.id
       });
     } catch (err) {
       console.error("Error al agregar miembro:", err);
@@ -155,7 +148,7 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
 
   const handleUpdateMemberRole = async (memberId, newRoleId) => {
     try {
-      await api.put(`/api/project-members/${memberId}`, { role_id: newRoleId });
+      await api.put(`/api/project-members/${memberId}`, { project_role_id: newRoleId });
       await fetchProjectData();
     } catch (err) {
       console.error("Error al actualizar rol:", err);
@@ -516,11 +509,11 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
                     <div className="member-role">
                       {isOwner && !member.isCreator ? (
                         <select
-                          value={member.role_id}
+                          value={member.project_role_id}
                           onChange={(e) => handleUpdateMemberRole(member.id, parseInt(e.target.value))}
                           className="role-select"
                         >
-                          {roles.map((role) => (
+                          {projectRoles.map((role) => (
                             <option key={role.id} value={role.id}>
                               {role.name}
                             </option>
@@ -595,18 +588,18 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
                         </select>
                       </div>
                       <div className="mb-3">
-                        <label htmlFor="role_id" className="form-label">
+                        <label htmlFor="project_role_id" className="form-label">
                           Rol <span className="text-danger">*</span>
                         </label>
                         <select
                           className="form-select"
-                          id="role_id"
-                          value={memberForm.role_id}
-                          onChange={(e) => setMemberForm({ ...memberForm, role_id: parseInt(e.target.value) })}
+                          id="project_role_id"
+                          value={memberForm.project_role_id}
+                          onChange={(e) => setMemberForm({ ...memberForm, project_role_id: parseInt(e.target.value) })}
                           required
                         >
                           <option value="">Seleccionar rol</option>
-                          {roles.map((role) => (
+                          {projectRoles.map((role) => (
                             <option key={role.id} value={role.id}>
                               {role.name} - {role.description}
                             </option>

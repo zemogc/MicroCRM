@@ -57,8 +57,11 @@ async def list_users(
     # Execute query
     users = session.exec(statement).all()
     
+    # Create response without role information (roles are project-specific now)
+    result = [UserResponse.model_validate(user) for user in users]
+    
     return PaginatedResponse(
-        items=[UserResponse.model_validate(user) for user in users],
+        items=result,
         total=total,
         skip=skip,
         limit=limit,
@@ -74,6 +77,8 @@ def create_user(payload: UserCreate, session: Session = Depends(get_session)) ->
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already exists")
     
+    # No role validation needed (roles are project-specific now)
+    
     # Hash password before saving
     user_data = payload.model_dump()
     user_data['password'] = hash_password(user_data['password'])
@@ -83,6 +88,8 @@ def create_user(payload: UserCreate, session: Session = Depends(get_session)) ->
     session.add(user)
     session.commit()
     session.refresh(user)
+    
+    # Create response without role information
     return UserResponse.model_validate(user)
 
 @router.get("/{user_id}", response_model=UserResponse)
@@ -91,6 +98,8 @@ def get_user(user_id: int, session: Session = Depends(get_session)) -> UserRespo
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Return user without role information
     return UserResponse.model_validate(user)
 
 @router.put("/{user_id}", response_model=UserResponse)
@@ -107,6 +116,8 @@ def update_user(user_id: int, payload: UserUpdate, session: Session = Depends(ge
         if existing_user:
             raise HTTPException(status_code=400, detail="Email already exists")
     
+    # No role validation needed (roles are project-specific now)
+    
     # Update user
     update_data = payload.model_dump(exclude_unset=True)
     for key, value in update_data.items():
@@ -115,6 +126,8 @@ def update_user(user_id: int, payload: UserUpdate, session: Session = Depends(ge
     session.add(user)
     session.commit()
     session.refresh(user)
+    
+    # Return user without role information
     return UserResponse.model_validate(user)
 
 @router.delete("/{user_id}", status_code=204)

@@ -21,14 +21,14 @@ function Proyectos() {
   const { user } = useAuth();
   const [proyectos, setProyectos] = useState([]);
   const [proyectosComoColaborador, setProyectosComoColaborador] = useState([]);
-  const [roles, setRoles] = useState([]);
+  const [projectMembers, setProjectMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    crated_by: user?.id || 0
+    id_user: user?.id || 0
   });
   const [submitting, setSubmitting] = useState(false);
   const [selectedProyecto, setSelectedProyecto] = useState(null);
@@ -38,7 +38,7 @@ function Proyectos() {
   useEffect(() => {
     if (user?.id) {
       fetchProyectos();
-      fetchRoles();
+      fetchProjectMembers();
     }
   }, [user?.id]);
 
@@ -52,39 +52,22 @@ function Proyectos() {
       setLoading(true);
       setError("");
       
-      // Obtener todos los proyectos y membresías del usuario
-      const [projectsRes, membershipRes] = await Promise.all([
-        api.get("/api/projects/", {
-          params: {
-            limit: 100,
-            order_by: "updated_at",
-            order_dir: "desc"
-          }
-        }),
-        // Obtener proyectos donde soy miembro (colaborador)
-        api.get(`/api/project-members/user/${user.id}`)
-      ]);
+      // Obtener proyectos del usuario (simplified - no more project_members)
+      const projectsRes = await api.get("/api/projects/", {
+        params: {
+          limit: 100,
+          order_by: "updated_at",
+          order_dir: "desc"
+        }
+      });
       
       const allProjects = projectsRes.data.items || [];
-      const membership = membershipRes.data || [];
       
-      // IDs de proyectos donde soy miembro (colaborador)
-      const collaboratorProjectIds = membership.map(m => m.project_id);
+      // FILTRAR: Solo mostrar proyectos donde soy el creador (id_user === user.id)
+      const myProjects = allProjects.filter(p => p.id_user === user.id);
       
-      // FILTRAR: Solo mostrar proyectos donde:
-      // 1. Soy el creador (crated_by === user.id), O
-      // 2. Soy miembro (está en project_members)
-      const myProjects = allProjects.filter(p => 
-        p.crated_by === user.id || collaboratorProjectIds.includes(p.id)
-      );
-      
-      // Proyectos donde soy colaborador (no creador)
-      const collaboratorProjects = myProjects.filter(p => 
-        collaboratorProjectIds.includes(p.id) && p.crated_by !== user.id
-      );
-      
-      setProyectos(myProjects); // Solo MIS proyectos
-      setProyectosComoColaborador(collaboratorProjects);
+      // Proyectos donde soy colaborador (se calcularán después de cargar project_members)
+      setProyectos(myProjects);
     } catch (err) {
       console.error("Error al cargar proyectos:", err);
       setError("Error al cargar los proyectos. Intenta de nuevo.");
@@ -93,12 +76,31 @@ function Proyectos() {
     }
   };
 
-  const fetchRoles = async () => {
+  const fetchProjectMembers = async () => {
     try {
-      const response = await api.get("/api/roles/");
-      setRoles(response.data || []); // Los roles vienen directamente, no en .items
+      // Obtener todos los project members para el usuario actual
+      const response = await api.get(`/api/project-members/user/${user?.id}`);
+      const members = response.data || [];
+      setProjectMembers(members);
+      
+      // Obtener los proyectos donde soy colaborador (no creador)
+      const collaboratorProjectIds = members.map(member => member.project_id);
+      
+      // Obtener detalles de esos proyectos
+      const collaboratorProjects = [];
+      for (const projectId of collaboratorProjectIds) {
+        try {
+          const projectResponse = await api.get(`/api/projects/${projectId}`);
+          collaboratorProjects.push(projectResponse.data);
+        } catch (err) {
+          console.error(`Error al cargar proyecto ${projectId}:`, err);
+        }
+      }
+      
+      setProyectosComoColaborador(collaboratorProjects);
     } catch (err) {
-      console.error("Error al cargar roles:", err);
+      console.error("Error al cargar project members:", err);
+      setProyectosComoColaborador([]);
     }
   };
 
@@ -107,7 +109,7 @@ function Proyectos() {
     setFormData({
       name: "",
       description: "",
-      crated_by: user?.id || 0
+      id_user: user?.id || 0
     });
   };
 
@@ -116,7 +118,7 @@ function Proyectos() {
     setFormData({
       name: "",
       description: "",
-      crated_by: user?.id || 0
+      id_user: user?.id || 0
     });
   };
 
@@ -142,11 +144,11 @@ function Proyectos() {
       
       const response = await api.post("/api/projects/", {
         ...formData,
-        crated_by: user.id
+        id_user: user.id
       });
       
-      // Agregar el nuevo proyecto a la lista
-      setProyectos(prev => [response.data, ...prev]);
+      // Refrescar la lista de proyectos
+      await fetchProyectos();
       
       // Cerrar modal
       handleCloseModal();
@@ -166,7 +168,9 @@ function Proyectos() {
 
     try {
       await api.delete(`/api/projects/${projectId}`);
-      setProyectos(prev => prev.filter(p => p.id !== projectId));
+      // Refrescar la lista de proyectos
+      await fetchProyectos();
+      await fetchProjectMembers();
     } catch (err) {
       console.error("Error al eliminar proyecto:", err);
       alert("Error al eliminar el proyecto");
@@ -182,6 +186,9 @@ function Proyectos() {
       day: "numeric"
     });
   };
+
+  // Combinar proyectos creados y como colaborador para mostrar en la tabla
+  const todosLosProyectos = [...proyectos, ...proyectosComoColaborador];
 
   if (loading) {
     return (
@@ -232,7 +239,7 @@ function Proyectos() {
             <FolderKanban size={24} />
           </div>
           <div className="stat-info">
-            <h3>{proyectos.length}</h3>
+            <h3>{proyectos.length + proyectosComoColaborador.length}</h3>
             <p>Total Proyectos</p>
           </div>
         </div>
@@ -241,7 +248,7 @@ function Proyectos() {
             <CheckCircle size={24} />
           </div>
           <div className="stat-info">
-            <h3>{proyectos.filter(p => p.crated_by === user?.id).length}</h3>
+            <h3>{proyectos.filter(p => p.id_user === user?.id).length}</h3>
             <p>Creados por mí</p>
           </div>
         </div>
@@ -258,7 +265,7 @@ function Proyectos() {
 
       {/* Tabla de Proyectos */}
       <div className="proyectos-table-container">
-        {proyectos.length === 0 ? (
+        {todosLosProyectos.length === 0 ? (
           <div className="empty-state">
             <FolderKanban size={64} />
             <h3>No tienes proyectos</h3>
@@ -282,14 +289,16 @@ function Proyectos() {
                 </tr>
               </thead>
               <tbody>
-                {proyectos.map((proyecto) => (
+                {todosLosProyectos.map((proyecto) => (
                   <tr key={proyecto.id}>
                     <td>
                       <div className="proyecto-name">
                         <FolderKanban size={18} />
                         <strong>{proyecto.name}</strong>
-                        {proyecto.crated_by === user?.id && (
+                        {proyecto.id_user === user?.id ? (
                           <span className="badge-owner">Propietario</span>
+                        ) : (
+                          <span className="badge-collaborator">Colaborador</span>
                         )}
                       </div>
                     </td>
@@ -329,7 +338,7 @@ function Proyectos() {
                         {/* Botón de editar/gestionar - Owner o Colaborador */}
                         <button 
                           className="btn-action btn-edit" 
-                          title={proyecto.crated_by === user?.id ? "Editar" : "Gestionar mis tareas"}
+                          title={proyecto.id_user === user?.id ? "Editar" : "Gestionar mis tareas"}
                           onClick={() => {
                             setSelectedProyecto(proyecto);
                             setModoEdicion(true);
@@ -338,7 +347,7 @@ function Proyectos() {
                           <Edit2 size={18} />
                         </button>
                         {/* Solo el owner puede eliminar */}
-                        {proyecto.crated_by === user?.id && (
+                        {proyecto.id_user === user?.id && (
                           <button 
                             className="btn-action btn-delete" 
                             title="Eliminar"

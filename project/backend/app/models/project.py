@@ -6,7 +6,7 @@ from datetime import datetime
 class ProjectBase(SQLModel):
     name: str = Field(max_length=100)
     description: Optional[str] = Field(default=None, max_length=150)
-    crated_by: int = Field(foreign_key="users.id", ondelete="CASCADE")
+    id_user: int = Field(foreign_key="users.id", ondelete="CASCADE")
 
     @field_validator("name")
     @classmethod
@@ -45,10 +45,11 @@ class ProjectResponse(SQLModel):
     id: int
     name: str
     description: Optional[str] = None
-    crated_by: int
+    id_user: int
     created_at: datetime
     updated_at: datetime
     # Include creator information
+    creator_name: Optional[str] = None
     creator_email: Optional[str] = None
 
     class Config:

@@ -24,14 +24,15 @@ def enrich_task_response(task: Task, session: Session) -> TaskResponse:
     if task.assigned_to:
         assigned_user = session.get(User, task.assigned_to)
     
-    # Get creator information
-    creator = session.get(User, task.crated_by)
+    # Get project creator information
+    project_creator = session.get(User, project.id_user) if project else None
     
     # Create enriched task data
     task_data = task.model_dump()
     task_data['project_name'] = project.name if project else "Unknown Project"
+    task_data['project_description'] = project.description if project else None
+    task_data['assigned_to_name'] = assigned_user.name if assigned_user else None
     task_data['assigned_to_email'] = assigned_user.email if assigned_user else None
-    task_data['created_by_email'] = creator.email if creator else "Unknown User"
     
     return TaskResponse.model_validate(task_data)
 
@@ -134,8 +135,8 @@ async def create_task(
         if not user:
             raise HTTPException(status_code=400, detail="assigned_to user does not exist")
     
-    # Create new task with current user as creator
-    task = Task(**payload.model_dump(), crated_by=current_user.id)
+    # Create new task (no creator field in new schema)
+    task = Task(**payload.model_dump())
     session.add(task)
     session.commit()
     session.refresh(task)

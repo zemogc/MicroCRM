@@ -24,7 +24,7 @@ function ProyectoVer({ proyecto, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const isOwner = proyecto.crated_by === user?.id;
+  const isOwner = proyecto.id_user === user?.id;
 
   useEffect(() => {
     fetchProjectData();
@@ -35,23 +35,22 @@ function ProyectoVer({ proyecto, onClose }) {
       setLoading(true);
       setError("");
       
-      const [membersRes, tasksRes, usersRes] = await Promise.all([
-        api.get(`/api/project-members/project/${proyecto.id}`),
+      const [tasksRes, usersRes] = await Promise.all([
         api.get(`/api/tasks/project/${proyecto.id}`),
         api.get("/api/users/", { params: { limit: 100 } })
       ]);
       
-      const membersData = membersRes.data;
       const allUsersData = usersRes.data.items || [];
       
       // Encontrar el creador del proyecto
-      const creator = allUsersData.find(u => u.id === proyecto.crated_by);
+      const creator = allUsersData.find(u => u.id === proyecto.id_user);
       
-      // Agregar el creador a la lista de miembros como "Admin" (rol 1)
+      // En el nuevo esquema normalizado, solo hay un creador por proyecto
+      // No hay miembros separados, solo el creador
       const creatorAsMember = {
         id: 0, // ID temporal para el creador
         project_id: proyecto.id,
-        user_id: proyecto.crated_by,
+        user_id: proyecto.id_user,
         role_id: 1, // Admin
         user_name: creator?.name || proyecto.creator_email || "Desconocido",
         role_name: "Admin (Creador)",
@@ -60,10 +59,8 @@ function ProyectoVer({ proyecto, onClose }) {
         isCreator: true // Flag para identificarlo
       };
       
-      // Combinar creador + miembros del proyecto
-      const allMembers = [creatorAsMember, ...membersData];
-      
-      setMembers(allMembers);
+      // Solo el creador en el nuevo esquema
+      setMembers([creatorAsMember]);
       setTasks(tasksRes.data);
     } catch (err) {
       console.error("Error al cargar datos del proyecto:", err);

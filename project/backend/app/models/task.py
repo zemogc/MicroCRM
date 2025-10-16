@@ -39,7 +39,6 @@ class Task(TaskBase, table=True):
     __tablename__ = "tasks"
     
     id: Optional[int] = Field(default=None, primary_key=True)
-    crated_by: int = Field(foreign_key="users.id", ondelete="CASCADE")  # Note: keeping the typo from the diagram
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
 
@@ -68,14 +67,14 @@ class TaskResponse(SQLModel):
     title: str
     description: Optional[str] = None
     status: str
-    crated_by: int
     assigned_to: Optional[int] = None
     created_at: datetime
     due_date: Optional[datetime] = None
     # Include related information
     project_name: Optional[str] = None
+    project_description: Optional[str] = None
+    assigned_to_name: Optional[str] = None
     assigned_to_email: Optional[str] = None
-    created_by_email: Optional[str] = None
 
     class Config:
         from_attributes = True

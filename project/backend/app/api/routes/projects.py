@@ -3,6 +3,7 @@ from sqlmodel import Session, select, func, col
 from typing import List, Optional
 from ...models.project import Project, ProjectCreate, ProjectUpdate, ProjectResponse
 from ...models.user import User
+from ...models.project_role import ProjectRole
 from ...models.pagination import PaginatedResponse
 from ...core.database import get_session
 from ...core.auth import get_current_active_user
@@ -38,7 +39,7 @@ async def list_projects(
         )
     
     if creator_id is not None:
-        statement = statement.where(Project.crated_by == creator_id)
+        statement = statement.where(Project.id_user == creator_id)
     
     # Get total count
     count_statement = select(func.count()).select_from(statement.subquery())
@@ -57,11 +58,12 @@ async def list_projects(
     # Execute query
     projects = session.exec(statement).all()
     
-    # Create response with creator emails
+    # Create response with creator information
     result = []
     for project in projects:
-        creator = session.get(User, project.crated_by)
+        creator = session.get(User, project.id_user)
         project_data = project.model_dump()
+        project_data['creator_name'] = creator.name if creator else "Unknown User"
         project_data['creator_email'] = creator.email if creator else "Unknown User"
         result.append(ProjectResponse.model_validate(project_data))
     
@@ -85,9 +87,9 @@ async def create_project(
     await rate_limit_api(request, settings.rate_limit_api_per_min, str(current_user.id))
     
     # Validate that the creator user exists
-    user = session.get(User, payload.crated_by)
+    user = session.get(User, payload.id_user)
     if not user:
-        raise HTTPException(status_code=400, detail="crated_by user does not exist")
+        raise HTTPException(status_code=400, detail="id_user does not exist")
     
     # Create new project
     project = Project(**payload.model_dump())
@@ -95,9 +97,30 @@ async def create_project(
     session.commit()
     session.refresh(project)
     
-    # Include creator name in response
-    project_data = project.model_dump()
-    project_data['creator_email'] = user.email
+    # Create default roles for the project
+    default_roles = [
+        {"name": "Administrador", "description": "Administrador del proyecto", "project_id": project.id},
+        {"name": "Desarrollador", "description": "Desarrollador del proyecto", "project_id": project.id},
+        {"name": "Revisor", "description": "Revisor del proyecto", "project_id": project.id}
+    ]
+    
+    for role_data in default_roles:
+        role = ProjectRole(**role_data)
+        session.add(role)
+    
+    session.commit()
+    
+    # Include creator information in response
+    project_data = {
+        'id': project.id,
+        'name': project.name,
+        'description': project.description,
+        'id_user': project.id_user,
+        'created_at': project.created_at,
+        'updated_at': project.updated_at,
+        'creator_name': user.name,
+        'creator_email': user.email
+    }
     
     return ProjectResponse.model_validate(project_data)
 
@@ -113,10 +136,18 @@ async def get_project(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
-    # Include creator name
-    creator = session.get(User, project.crated_by)
-    project_data = project.model_dump()
-    project_data['creator_email'] = creator.email if creator else "Unknown User"
+    # Include creator information
+    creator = session.get(User, project.id_user)
+    project_data = {
+        'id': project.id,
+        'name': project.name,
+        'description': project.description,
+        'id_user': project.id_user,
+        'created_at': project.created_at,
+        'updated_at': project.updated_at,
+        'creator_name': creator.name if creator else "Unknown User",
+        'creator_email': creator.email if creator else "Unknown User"
+    }
     
     return ProjectResponse.model_validate(project_data)
 
@@ -142,10 +173,18 @@ async def update_project(
     session.commit()
     session.refresh(project)
     
-    # Include creator name in response
-    creator = session.get(User, project.crated_by)
-    project_data = project.model_dump()
-    project_data['creator_email'] = creator.email if creator else "Unknown User"
+    # Include creator information in response
+    creator = session.get(User, project.id_user)
+    project_data = {
+        'id': project.id,
+        'name': project.name,
+        'description': project.description,
+        'id_user': project.id_user,
+        'created_at': project.created_at,
+        'updated_at': project.updated_at,
+        'creator_name': creator.name if creator else "Unknown User",
+        'creator_email': creator.email if creator else "Unknown User"
+    }
     
     return ProjectResponse.model_validate(project_data)
 
