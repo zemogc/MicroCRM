@@ -101,6 +101,15 @@ class UserLogin(SQLModel):
     email: EmailStr
     password: str
 
+class PasswordChange(SQLModel):
+    current_password: str
+    new_password: str = Field(max_length=255)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, v):
+        return validate_password_strength(v)
+
 class UserLoginResponse(SQLModel):
     access_token: str
     token_type: str = "bearer"
