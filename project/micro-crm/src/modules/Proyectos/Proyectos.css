@@ -685,7 +685,8 @@
   border-radius: 8px;
   font-size: 15px;
   color: var(--bs-body-color);
-  background: var(--bs-body-bg);
+  /* background-color (no background) para conservar la flecha de Bootstrap */
+  background-color: var(--bs-body-bg);
   transition: all 0.2s ease;
   cursor: pointer;
 }
