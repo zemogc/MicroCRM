@@ -1,8 +1,26 @@
+# Python
 .venv/
 __pycache__/
-dist/
-node_modules/
-.DS_Store
-.env*
+*.py[cod]
 .pytest_cache/
+.coverage
 coverage/
+htmlcov/
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+
+# Entorno
+.env
+.env.*
+!.env.example
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+~$*
