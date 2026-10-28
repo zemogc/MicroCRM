@@ -855,3 +855,15 @@
   }
 }
 
+
+/* Cliente asociado al proyecto */
+.client-chip {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.14);
+}

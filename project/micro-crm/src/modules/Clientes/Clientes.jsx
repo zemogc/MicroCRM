@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "../../services/api";
+import { fetchAllClients } from "../../services/clientsService";
 import StatusBadge from "../../components/StatusBadge";
 import { CLIENT_STATUS } from "../../constants/status";
 import { apiErrorMessage, formatDate } from "../../utils/format";
@@ -19,7 +20,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Contact,
-  Download
+  Download,
+  FolderKanban
 } from "lucide-react";
 import "../Proyectos/Proyectos.css";
 import "./Clientes.css";
@@ -41,6 +43,7 @@ const CSV_COLUMNS = [
   { header: "Correo", value: (c) => c.email },
   { header: "Teléfono", value: (c) => c.phone },
   { header: "Estado", value: (c) => CLIENT_STATUS[c.status]?.label ?? c.status },
+  { header: "Proyectos", value: (c) => c.projects_count },
   { header: "Notas", value: (c) => c.notes },
   { header: "Creado", value: (c) => c.created_at?.slice(0, 10) },
   { header: "Actualizado", value: (c) => c.updated_at?.slice(0, 10) },
@@ -117,21 +120,10 @@ export default function Clientes() {
   const handleExport = async () => {
     try {
       setExporting(true);
-      const rows = [];
-      for (let skip = 0; ; skip += 100) {
-        const res = await api.get("/api/clients/", {
-          params: {
-            skip,
-            limit: 100,
-            order_by: "name",
-            order_dir: "asc",
-            search: debouncedSearch || undefined,
-            status: statusFilter || undefined
-          }
-        });
-        rows.push(...res.data.items);
-        if (!res.data.has_more) break;
-      }
+      const rows = await fetchAllClients({
+        search: debouncedSearch || undefined,
+        status: statusFilter || undefined
+      });
       downloadCsv("clientes", CSV_COLUMNS, rows);
     } catch (err) {
       setError(apiErrorMessage(err, "No se pudo exportar los clientes"));
@@ -347,6 +339,12 @@ export default function Clientes() {
                               <span className="cliente-company">
                                 <Building2 size={13} />
                                 {cliente.company}
+                              </span>
+                            )}
+                            {cliente.projects_count > 0 && (
+                              <span className="cliente-company cliente-projects">
+                                <FolderKanban size={13} />
+                                {cliente.projects_count} {cliente.projects_count === 1 ? "proyecto" : "proyectos"}
                               </span>
                             )}
                           </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
+import { fetchAllClients } from "../../services/clientsService";
 import {
   X,
   Users,
@@ -58,7 +59,14 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
   const isOwner = proyecto.id_user === user?.id;
 
   // Datos editables del proyecto (solo el propietario)
-  const [info, setInfo] = useState({ name: proyecto.name, description: proyecto.description || "" });
+  const toInfo = (p) => ({
+    name: p.name,
+    description: p.description || "",
+    client_id: p.client_id ?? "",
+    client_name: p.client_name || ""
+  });
+  const [info, setInfo] = useState(() => toInfo(proyecto));
+  const [misClientes, setMisClientes] = useState([]);
   const [infoDraft, setInfoDraft] = useState(info);
   const [editingInfo, setEditingInfo] = useState(false);
   const [savingInfo, setSavingInfo] = useState(false);
@@ -127,8 +135,12 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
     e.preventDefault();
     try {
       setSavingInfo(true);
-      const response = await api.put(`/api/projects/${proyecto.id}`, infoDraft);
-      setInfo({ name: response.data.name, description: response.data.description || "" });
+      const response = await api.put(`/api/projects/${proyecto.id}`, {
+        name: infoDraft.name,
+        description: infoDraft.description,
+        client_id: infoDraft.client_id ? Number(infoDraft.client_id) : null
+      });
+      setInfo(toInfo(response.data));
       setEditingInfo(false);
       onUpdate?.(response.data);
     } catch (err) {
@@ -343,6 +355,17 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
                 placeholder="Descripción"
                 aria-label="Descripción del proyecto"
               />
+              <select
+                className="form-select"
+                value={infoDraft.client_id}
+                onChange={(e) => setInfoDraft({ ...infoDraft, client_id: e.target.value })}
+                aria-label="Cliente del proyecto"
+              >
+                <option value="">Sin cliente</option>
+                {misClientes.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}{c.company ? ` · ${c.company}` : ""}</option>
+                ))}
+              </select>
               <div className="header-edit-actions">
                 <button type="submit" className="btn-add" disabled={savingInfo}>
                   <Check size={16} /> Guardar
@@ -359,7 +382,11 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
                 {isOwner && (
                   <button
                     className="btn-action btn-edit btn-edit-info"
-                    onClick={() => { setInfoDraft(info); setEditingInfo(true); }}
+                    onClick={() => {
+                      setInfoDraft(info);
+                      setEditingInfo(true);
+                      fetchAllClients().then(setMisClientes).catch(() => setMisClientes([]));
+                    }}
                     title="Editar nombre y descripción"
                   >
                     <Edit2 size={16} />
@@ -367,6 +394,7 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
                 )}
               </h2>
               <p>{info.description || "Sin descripción"}</p>
+              {info.client_name && <p className="header-client">Cliente: <strong>{info.client_name}</strong></p>}
               <span className="badge-owner-detail">Modo Edición</span>
             </div>
           )}

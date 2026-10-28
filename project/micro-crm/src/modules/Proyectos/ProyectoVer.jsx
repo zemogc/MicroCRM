@@ -120,6 +120,7 @@ function ProyectoVer({ proyecto, onClose }) {
           <div className="header-info">
             <h2>{proyecto.name}</h2>
             <p>{proyecto.description || "Sin descripción"}</p>
+            {proyecto.client_name && <p className="header-client">Cliente: <strong>{proyecto.client_name}</strong></p>}
             {isOwner && <span className="badge-owner-detail">Eres el propietario</span>}
           </div>
           <button className="btn-close-modal" onClick={onClose}>
