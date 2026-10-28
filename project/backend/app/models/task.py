@@ -1,7 +1,27 @@
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field
 from pydantic import field_validator
 from typing import Optional
 from datetime import datetime
+from ..core.clock import utcnow
+
+# Kanban flow: pending -> in_progress -> in_review -> completed
+# 'overdue' is set automatically when due_date passes; 'cancelled' closes the task
+TASK_STATUSES = ["pending", "in_progress", "overdue", "in_review", "completed", "cancelled"]
+
+
+def _validate_status(v: Optional[str]) -> Optional[str]:
+    if v is not None and v not in TASK_STATUSES:
+        raise ValueError(f"El estado debe ser uno de: {', '.join(TASK_STATUSES)}")
+    return v
+
+
+def _clean_title(v: Optional[str]) -> Optional[str]:
+    if v is None:
+        return v
+    if len(v.strip()) == 0:
+        raise ValueError("El título de la tarea no puede estar vacío")
+    return v.strip()
+
 
 class TaskBase(SQLModel):
     project_id: int = Field(foreign_key="projects.id", ondelete="CASCADE")
@@ -14,33 +34,19 @@ class TaskBase(SQLModel):
     @field_validator("title")
     @classmethod
     def validate_title(cls, v):
-        if not v or len(v.strip()) == 0:
-            raise ValueError("Task title cannot be empty")
-        if len(v) > 150:
-            raise ValueError("Task title must be 150 characters or less")
-        return v.strip()
-
-    @field_validator("description")
-    @classmethod
-    def validate_description(cls, v):
-        if v and len(v) > 150:
-            raise ValueError("Task description must be 150 characters or less")
-        return v
+        return _clean_title(v)
 
     @field_validator("status")
     @classmethod
     def validate_status(cls, v):
-        valid_statuses = ["pending", "in_progress", "overdue", "in_review", "completed", "cancelled"]
-        if v not in valid_statuses:
-            raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
-        return v
+        return _validate_status(v)
 
 class Task(TaskBase, table=True):
     __tablename__ = "tasks"
-    
+
     id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    
+    created_at: datetime = Field(default_factory=utcnow)
+
 
 class TaskCreate(TaskBase):
     pass
@@ -51,15 +57,16 @@ class TaskUpdate(SQLModel):
     status: Optional[str] = Field(default=None, max_length=50)
     assigned_to: Optional[int] = None
     due_date: Optional[datetime] = None
-    
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, v):
+        return _clean_title(v)
+
     @field_validator("status")
     @classmethod
     def validate_status(cls, v):
-        if v is not None:  # Solo validar si se proporciona un status
-            valid_statuses = ["pending", "in_progress", "overdue", "in_review", "completed", "cancelled"]
-            if v not in valid_statuses:
-                raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
-        return v
+        return _validate_status(v)
 
 class TaskResponse(SQLModel):
     id: int
@@ -75,6 +82,3 @@ class TaskResponse(SQLModel):
     project_description: Optional[str] = None
     assigned_to_name: Optional[str] = None
     assigned_to_email: Optional[str] = None
-
-    class Config:
-        from_attributes = True

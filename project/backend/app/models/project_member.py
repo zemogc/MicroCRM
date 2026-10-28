@@ -1,6 +1,7 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
+from ..core.clock import utcnow
 
 if TYPE_CHECKING:
     from .user import User
@@ -16,7 +17,7 @@ class ProjectMember(ProjectMemberBase, table=True):
     __tablename__ = "project_members"
     
     id: Optional[int] = Field(default=None, primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utcnow)
     
     # Relationships
     project: Optional["Project"] = Relationship()
@@ -41,6 +42,3 @@ class ProjectMemberResponse(SQLModel):
     user_email: Optional[str] = None
     role_name: Optional[str] = None
     role_description: Optional[str] = None
-
-    class Config:
-        from_attributes = True

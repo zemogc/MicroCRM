@@ -18,6 +18,3 @@ class PaginatedResponse(BaseModel, Generic[T]):
     limit: int
     has_more: bool
 
-    class Config:
-        from_attributes = True
-

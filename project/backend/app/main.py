@@ -1,9 +1,11 @@
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from contextlib import asynccontextmanager
 from .core.settings import get_settings
+from .core.database import init_db
 from .core.exceptions import (
     http_exception_handler,
     validation_exception_handler,
@@ -13,28 +15,33 @@ from .core.exceptions import (
 from .core.scheduler import start_scheduler, stop_scheduler
 from .api.routes import auth, users, projects, tasks, project_members, project_roles
 
+API_VERSION = "1.0.0"
+
+settings = get_settings()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan events"""
     # Startup
-    await start_scheduler()
+    if settings.auto_create_tables:
+        init_db()
+    if settings.enable_scheduler:
+        await start_scheduler()
     yield
     # Shutdown
     await stop_scheduler()
 
 
 app = FastAPI(
-    title="Micro CRM API", 
-    version="0.1.0",
+    title="Micro CRM API",
+    version=API_VERSION,
     description="API para gestión de proyectos y tareas - CRM de proyectos",
     lifespan=lifespan,
     docs_url="/api/docs",
     redoc_url="/api/redoc",
     openapi_url="/api/openapi.json"
 )
-
-settings = get_settings()
 
 # CORS middleware
 app.add_middleware(
@@ -48,24 +55,25 @@ app.add_middleware(
 )
 
 # Exception handlers
-app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
 app.add_exception_handler(Exception, general_exception_handler)
 
-@app.get("/health")
+@app.get("/health", tags=["system"])
 def health():
     return {"status": "ok", "message": "Micro CRM API is running"}
 
-@app.get("/")
+@app.get("/", tags=["system"])
 def root():
     return {
         "message": "Micro CRM API - Gestión de Proyectos",
-        "version": "0.1.0",
+        "version": API_VERSION,
+        "docs": "/api/docs",
         "endpoints": {
             "auth": "/api/auth",
             "users": "/api/users",
-            "projects": "/api/projects", 
+            "projects": "/api/projects",
             "tasks": "/api/tasks",
             "project_members": "/api/project-members",
             "project_roles": "/api/project-roles"

@@ -6,6 +6,14 @@ if TYPE_CHECKING:
     from .project import Project
     from .project_member import ProjectMember
 
+def _clean_name(v: Optional[str]) -> Optional[str]:
+    if v is None:
+        return v
+    if len(v.strip()) == 0:
+        raise ValueError("El nombre del rol no puede estar vacío")
+    return v.strip()
+
+
 class ProjectRoleBase(SQLModel):
     name: str = Field(max_length=50, index=True)
     description: Optional[str] = Field(default=None, max_length=150)
@@ -14,11 +22,7 @@ class ProjectRoleBase(SQLModel):
     @field_validator("name")
     @classmethod
     def validate_name(cls, v):
-        if not v or len(v.strip()) == 0:
-            raise ValueError("Role name cannot be empty")
-        if len(v) > 50:
-            raise ValueError("Role name must be 50 characters or less")
-        return v.strip()
+        return _clean_name(v)
 
 class ProjectRole(ProjectRoleBase, table=True):
     __tablename__ = "project_roles"
@@ -36,6 +40,11 @@ class ProjectRoleUpdate(SQLModel):
     name: Optional[str] = Field(default=None, max_length=50)
     description: Optional[str] = Field(default=None, max_length=150)
 
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v):
+        return _clean_name(v)
+
 class ProjectRoleResponse(SQLModel):
     id: int
     name: str
@@ -43,6 +52,3 @@ class ProjectRoleResponse(SQLModel):
     project_id: int
     # Include related data
     project_name: Optional[str] = None
-
-    class Config:
-        from_attributes = True
