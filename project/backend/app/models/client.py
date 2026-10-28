@@ -95,3 +95,4 @@ class ClientResponse(SQLModel):
     owner_id: int
     created_at: datetime
     updated_at: datetime
+    projects_count: int = 0
