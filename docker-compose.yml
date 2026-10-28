@@ -1,0 +1,50 @@
+# MicroCRM completo: MySQL + API (FastAPI) + web (React servido con nginx)
+#   docker compose up --build
+#   Web: http://localhost:5173  ·  API: http://localhost:8000/api/docs
+
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: microcrm_db
+      MYSQL_USER: microcrm
+      MYSQL_PASSWORD: microcrm
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - db-data:/var/lib/mysql
+    # Por TCP: durante la inicializacion MySQL arranca sin red y el ping por socket daria un falso positivo
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-umicrocrm", "-pmicrocrm"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: ./project/backend
+    restart: on-failure
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-cambia-esta-clave-en-produccion}
+      MYSQL_HOST: db
+      MYSQL_USER: microcrm
+      MYSQL_PASSWORD: microcrm
+      MYSQL_DATABASE: microcrm_db
+      CORS_ORIGINS: http://localhost:5173
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./project/micro-crm
+      args:
+        VITE_API_URL: http://localhost:8000
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+volumes:
+  db-data:
