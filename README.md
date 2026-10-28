@@ -52,7 +52,7 @@ Está pensado para freelancers, agencias y equipos de desarrollo de 2 a 15 perso
 |---|---|
 | 🏠 **Dashboard** | Proyectos propios y como colaborador, tareas abiertas y atrasadas, % de avance, clientes por estado, próximos vencimientos y proyectos recientes |
 | 👥 **Clientes** | CRUD completo, embudo prospecto / activo / inactivo, búsqueda, filtros, paginación, notas y exportación a CSV |
-| 📁 **Proyectos** | Propios y compartidos, edición en línea, roles por proyecto (Administrador, Desarrollador, Revisor o personalizados) |
+| 📁 **Proyectos** | Propios y compartidos, vinculados a un cliente, edición en línea y roles por proyecto (Administrador, Desarrollador, Revisor o personalizados) |
 | 🗂️ **Kanban** | 5 columnas (Por hacer → En desarrollo → Atrasado → En revisión → Hecho) con **arrastrar y soltar** y acciones según el rol |
 | ✅ **Mis Tareas** | Todas tus tareas de todos los proyectos, filtros por estado, botón para avanzar al siguiente paso y exportación a CSV |
 | ⏰ **Automatización** | Un scheduler marca cada hora como *atrasadas* las tareas vencidas |
@@ -134,7 +134,7 @@ python -m app.seed                 # datos de demo (opcional)
 uvicorn app.main:app --reload      # http://localhost:8000/api/docs
 ```
 
-Las tablas se crean al iniciar la API. Si prefieres crearlas a mano en MySQL, usa [`microcrm_db_script.sql`](project/backend/microcrm_db_script.sql).
+Las tablas se crean al iniciar la API, y las bases de versiones anteriores se actualizan solas: las columnas nuevas, como `projects.client_id`, se agregan al arrancar sin tocar los datos. Si prefieres crear la base a mano en MySQL, usa [`microcrm_db_script.sql`](project/backend/microcrm_db_script.sql).
 
 ### Frontend (React + Vite)
 
@@ -198,6 +198,7 @@ MicroCRM/
 erDiagram
     users ||--o{ projects : "crea"
     users ||--o{ clients : "gestiona"
+    clients |o--o{ projects : "encarga"
     users ||--o{ project_members : "participa"
     users |o--o{ tasks : "asignada a"
     projects ||--o{ project_roles : "define"
@@ -225,6 +226,7 @@ erDiagram
     projects {
         int id PK
         int id_user FK "creador"
+        int client_id FK "opcional"
         varchar name
         varchar description
     }
@@ -367,7 +369,7 @@ npm run build
 - [x] Docker Compose y datos de demo
 - [x] Arrastrar y soltar tareas en el Kanban
 - [x] Exportar clientes y tareas a CSV
-- [ ] Vincular clientes con proyectos
+- [x] Vincular clientes con proyectos
 - [ ] Notificaciones por correo de tareas por vencer
 - [ ] Migraciones de base de datos con Alembic
 
