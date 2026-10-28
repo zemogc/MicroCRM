@@ -39,3 +39,29 @@ body {
   border-radius: 10px;
   border-width: 2px;
 }
+
+/* Botón secundario de exportación (Clientes, Mis Tareas) */
+.btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 2px solid var(--bs-border-color);
+  border-radius: 10px;
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-export:hover:not(:disabled) {
+  border-color: var(--bs-primary);
+  color: var(--bs-primary);
+}
+
+.btn-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
