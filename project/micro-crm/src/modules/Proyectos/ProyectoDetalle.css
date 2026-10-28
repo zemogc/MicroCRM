@@ -199,9 +199,10 @@
    KANBAN BOARD
    ============================================ */
 
+/* Una sola fila con las 5 columnas (scroll horizontal si no caben) para poder arrastrar entre todas */
 .kanban-board {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(230px, 1fr));
   gap: 16px;
   overflow-x: auto;
   padding-bottom: 8px;
@@ -231,8 +232,8 @@
   border: 2px solid var(--bs-border-color);
   border-radius: 12px;
   padding: 16px;
-  min-height: 400px;
-  min-width: 260px;
+  min-height: 360px;
+  min-width: 230px;
   display: flex;
   flex-direction: column;
 }
@@ -801,18 +802,8 @@
    ============================================ */
 
 @media (max-width: 1500px) {
-  .kanban-board {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  
   .kanban-column {
-    min-width: 240px;
-  }
-}
-
-@media (max-width: 1024px) {
-  .kanban-board {
-    grid-template-columns: repeat(2, 1fr);
+    min-width: 230px;
   }
 }
 
@@ -907,4 +898,36 @@
 .header-edit-actions {
   display: flex;
   gap: 8px;
+}
+
+/* Arrastrar y soltar */
+.kanban-hint {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--bs-secondary-color);
+}
+
+.task-card.is-draggable {
+  cursor: grab;
+}
+
+.task-card.is-draggable:active {
+  cursor: grabbing;
+}
+
+.task-card.is-dragging {
+  opacity: 0.45;
+  transform: rotate(1.5deg);
+}
+
+.kanban-column.can-drop {
+  border-style: dashed;
+  border-color: rgba(102, 126, 234, 0.6);
+}
+
+.kanban-column.is-drop-target {
+  border-style: solid;
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.08);
+  box-shadow: inset 0 0 0 2px rgba(102, 126, 234, 0.15);
 }
