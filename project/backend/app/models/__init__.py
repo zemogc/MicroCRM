@@ -4,5 +4,6 @@ from .project import Project
 from .project_role import ProjectRole
 from .project_member import ProjectMember
 from .task import Task
+from .client import Client
 
-__all__ = ["User", "Project", "ProjectRole", "ProjectMember", "Task"]
+__all__ = ["User", "Project", "ProjectRole", "ProjectMember", "Task", "Client"]
