@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import {
@@ -57,11 +57,13 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
 
   const isOwner = proyecto.id_user === user?.id;
 
-  useEffect(() => {
-    fetchProjectData();
-  }, [proyecto.id]);
+  // Datos editables del proyecto (solo el propietario)
+  const [info, setInfo] = useState({ name: proyecto.name, description: proyecto.description || "" });
+  const [infoDraft, setInfoDraft] = useState(info);
+  const [editingInfo, setEditingInfo] = useState(false);
+  const [savingInfo, setSavingInfo] = useState(false);
 
-  const fetchProjectData = async () => {
+  const fetchProjectData = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -112,6 +114,27 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
       setError("Error al cargar los datos");
     } finally {
       setLoading(false);
+    }
+  }, [proyecto]);
+
+  useEffect(() => {
+    fetchProjectData();
+  }, [fetchProjectData]);
+
+  // ============ DATOS DEL PROYECTO ============
+
+  const handleSaveInfo = async (e) => {
+    e.preventDefault();
+    try {
+      setSavingInfo(true);
+      const response = await api.put(`/api/projects/${proyecto.id}`, infoDraft);
+      setInfo({ name: response.data.name, description: response.data.description || "" });
+      setEditingInfo(false);
+      onUpdate?.(response.data);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al actualizar el proyecto");
+    } finally {
+      setSavingInfo(false);
     }
   };
 
@@ -233,27 +256,6 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
 
   // ============ HELPERS ============
   
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      pending: { label: "Por hacer", color: "#6b7280", icon: Circle },
-      in_progress: { label: "En desarrollo", color: "#3b82f6", icon: Play },
-      overdue: { label: "Atrasado", color: "#f59e0b", icon: Clock },
-      in_review: { label: "En revisión", color: "#8b5cf6", icon: Eye },
-      completed: { label: "Hecho", color: "#22c55e", icon: CheckCircle },
-      cancelled: { label: "Cancelado", color: "#ef4444", icon: X }
-    };
-    
-    const config = statusConfig[status] || statusConfig.pending;
-    const Icon = config.icon;
-    
-    return (
-      <span className="status-badge" style={{ backgroundColor: `${config.color}20`, color: config.color }}>
-        <Icon size={14} />
-        {config.label}
-      </span>
-    );
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return "Sin fecha";
     const date = new Date(dateString);
@@ -280,11 +282,51 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
       <div className="proyecto-detalle-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="detalle-header">
-          <div className="header-info">
-            <h2>Editar: {proyecto.name}</h2>
-            <p>{proyecto.description || "Sin descripción"}</p>
-            <span className="badge-owner-detail">Modo Edición</span>
-          </div>
+          {editingInfo ? (
+            <form className="header-info header-edit-form" onSubmit={handleSaveInfo}>
+              <input
+                className="form-control"
+                value={infoDraft.name}
+                onChange={(e) => setInfoDraft({ ...infoDraft, name: e.target.value })}
+                maxLength={100}
+                required
+                aria-label="Nombre del proyecto"
+              />
+              <input
+                className="form-control"
+                value={infoDraft.description}
+                onChange={(e) => setInfoDraft({ ...infoDraft, description: e.target.value })}
+                maxLength={150}
+                placeholder="Descripción"
+                aria-label="Descripción del proyecto"
+              />
+              <div className="header-edit-actions">
+                <button type="submit" className="btn-add" disabled={savingInfo}>
+                  <Check size={16} /> Guardar
+                </button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditingInfo(false)}>
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="header-info">
+              <h2>
+                Editar: {info.name}
+                {isOwner && (
+                  <button
+                    className="btn-action btn-edit btn-edit-info"
+                    onClick={() => { setInfoDraft(info); setEditingInfo(true); }}
+                    title="Editar nombre y descripción"
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                )}
+              </h2>
+              <p>{info.description || "Sin descripción"}</p>
+              <span className="badge-owner-detail">Modo Edición</span>
+            </div>
+          )}
           <button className="btn-close-modal" onClick={onClose}>
             <X size={36} strokeWidth={3} />
           </button>
@@ -503,7 +545,7 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
                     <div className="member-info">
                       <h4>{member.user_name}</h4>
                       <p className="member-added">
-                        Agregado por {member.added_by_name}
+                        {member.user_email} · desde {formatDate(member.created_at)}
                       </p>
                     </div>
                     <div className="member-role">

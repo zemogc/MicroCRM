@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import { 
@@ -21,7 +21,6 @@ function Proyectos() {
   const { user } = useAuth();
   const [proyectos, setProyectos] = useState([]);
   const [proyectosComoColaborador, setProyectosComoColaborador] = useState([]);
-  const [projectMembers, setProjectMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -34,22 +33,14 @@ function Proyectos() {
   const [selectedProyecto, setSelectedProyecto] = useState(null);
   const [modoEdicion, setModoEdicion] = useState(false);
 
-  // Cargar proyectos del usuario
-  useEffect(() => {
-    if (user?.id) {
-      fetchProyectos();
-      fetchProjectMembers();
-    }
-  }, [user?.id]);
-
-  const fetchProyectos = async () => {
+  const fetchProyectos = useCallback(async () => {
     if (!user?.id) {
       console.error("Usuario no disponible");
       return;
     }
     
     try {
-      setLoading(true);
+      // El spinner de pantalla completa solo se muestra en la carga inicial
       setError("");
       
       // Obtener proyectos del usuario (simplified - no more project_members)
@@ -74,14 +65,13 @@ function Proyectos() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  const fetchProjectMembers = async () => {
+  const fetchProjectMembers = useCallback(async () => {
     try {
       // Obtener todos los project members para el usuario actual
       const response = await api.get(`/api/project-members/user/${user?.id}`);
       const members = response.data || [];
-      setProjectMembers(members);
       
       // Obtener los proyectos donde soy colaborador (no creador)
       const collaboratorProjectIds = members.map(member => member.project_id);
@@ -102,7 +92,15 @@ function Proyectos() {
       console.error("Error al cargar project members:", err);
       setProyectosComoColaborador([]);
     }
-  };
+  }, [user?.id]);
+
+  // Cargar proyectos del usuario
+  useEffect(() => {
+    if (user?.id) {
+      fetchProyectos();
+      fetchProjectMembers();
+    }
+  }, [user?.id, fetchProyectos, fetchProjectMembers]);
 
   const handleOpenModal = () => {
     setShowModal(true);
@@ -142,7 +140,7 @@ function Proyectos() {
       setSubmitting(true);
       setError("");
       
-      const response = await api.post("/api/projects/", {
+      await api.post("/api/projects/", {
         ...formData,
         id_user: user.id
       });
@@ -474,7 +472,10 @@ function Proyectos() {
             setSelectedProyecto(null);
             setModoEdicion(false);
           }}
-          onUpdate={fetchProyectos}
+          onUpdate={(updated) => {
+            setSelectedProyecto(updated);
+            fetchProyectos();
+          }}
         />
       )}
     </div>
