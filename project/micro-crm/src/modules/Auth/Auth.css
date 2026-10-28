@@ -1,5 +1,6 @@
-/* Reset global */
-* {
+/* Reset de la pantalla de autenticación (no debe afectar al resto de la app) */
+.auth-container,
+.auth-container * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -8,7 +9,9 @@
 }
 
 /* Eliminar líneas específicas */
-hr, .hr, [role="separator"] {
+.auth-container hr,
+.auth-container .hr,
+.auth-container [role="separator"] {
   display: none !important;
   visibility: hidden !important;
   height: 0 !important;
@@ -18,7 +21,8 @@ hr, .hr, [role="separator"] {
 }
 
 /* Eliminar pseudo-elementos que puedan crear líneas */
-*::before, *::after {
+.auth-container *::before,
+.auth-container *::after {
   border: none !important;
   outline: none !important;
 }
@@ -103,12 +107,14 @@ body, html {
   outline: none !important;
 }
 
-/* Ocultar scrollbar */
-::-webkit-scrollbar {
+/* Ocultar scrollbar en la pantalla de autenticación */
+.auth-container::-webkit-scrollbar,
+.auth-container *::-webkit-scrollbar {
   display: none;
 }
 
-* {
+.auth-container,
+.auth-container * {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
