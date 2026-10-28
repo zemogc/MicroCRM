@@ -4,6 +4,7 @@ import api from "../../services/api";
 import StatusBadge from "../../components/StatusBadge";
 import { TASK_STATUS } from "../../constants/status";
 import { apiErrorMessage, formatDate } from "../../utils/format";
+import { downloadCsv } from "../../utils/csv";
 import {
   ListTodo,
   FolderKanban,
@@ -15,7 +16,8 @@ import {
   AlertCircle,
   Loader,
   Eye,
-  Send
+  Send,
+  Download
 } from "lucide-react";
 import "./Tareas.css";
 
@@ -25,6 +27,15 @@ const STAT_CARDS = [
   { status: "overdue", label: "Atrasadas", icon: Clock, className: "overdue-icon" },
   { status: "in_review", label: "En revisión", icon: Eye, className: "review-icon" },
   { status: "completed", label: "Completadas", icon: CheckCircle, className: "completed-icon" },
+];
+
+const CSV_COLUMNS = [
+  { header: "Tarea", value: (t) => t.title },
+  { header: "Descripción", value: (t) => t.description },
+  { header: "Proyecto", value: (t) => t.project_name },
+  { header: "Estado", value: (t) => TASK_STATUS[t.status]?.label ?? t.status },
+  { header: "Vencimiento", value: (t) => t.due_date?.slice(0, 10) },
+  { header: "Creada", value: (t) => t.created_at?.slice(0, 10) },
 ];
 
 // Siguiente paso que puede dar quien tiene la tarea asignada
@@ -91,13 +102,25 @@ function Tareas() {
     <div className="tareas-container">
       {/* Header */}
       <div className="tareas-header">
-        <div className="header-title">
-          <ListTodo size={32} />
-          <h1>Mis Tareas</h1>
+        <div>
+          <div className="header-title">
+            <ListTodo size={32} />
+            <h1>Mis Tareas</h1>
+          </div>
+          <p className="header-subtitle">
+            Gestiona todas tus tareas asignadas de todos los proyectos
+          </p>
         </div>
-        <p className="header-subtitle">
-          Gestiona todas tus tareas asignadas de todos los proyectos
-        </p>
+        {/* Exporta lo que se ve con el filtro actual */}
+        <button
+          type="button"
+          className="btn-export"
+          onClick={() => downloadCsv("mis-tareas", CSV_COLUMNS, filteredTareas)}
+          disabled={filteredTareas.length === 0}
+        >
+          <Download size={18} />
+          Exportar CSV
+        </button>
       </div>
 
       {/* Stats Cards */}

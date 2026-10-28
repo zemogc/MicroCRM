@@ -51,10 +51,10 @@ Está pensado para freelancers, agencias y equipos de desarrollo de 2 a 15 perso
 | Módulo | Qué incluye |
 |---|---|
 | 🏠 **Dashboard** | Proyectos propios y como colaborador, tareas abiertas y atrasadas, % de avance, clientes por estado, próximos vencimientos y proyectos recientes |
-| 👥 **Clientes** | CRUD completo, embudo prospecto / activo / inactivo, búsqueda, filtros, paginación y notas |
+| 👥 **Clientes** | CRUD completo, embudo prospecto / activo / inactivo, búsqueda, filtros, paginación, notas y exportación a CSV |
 | 📁 **Proyectos** | Propios y compartidos, edición en línea, roles por proyecto (Administrador, Desarrollador, Revisor o personalizados) |
-| 🗂️ **Kanban** | 5 columnas (Por hacer → En desarrollo → Atrasado → En revisión → Hecho) con acciones según el rol |
-| ✅ **Mis Tareas** | Todas tus tareas de todos los proyectos, filtros por estado y botón para avanzar al siguiente paso |
+| 🗂️ **Kanban** | 5 columnas (Por hacer → En desarrollo → Atrasado → En revisión → Hecho) con **arrastrar y soltar** y acciones según el rol |
+| ✅ **Mis Tareas** | Todas tus tareas de todos los proyectos, filtros por estado, botón para avanzar al siguiente paso y exportación a CSV |
 | ⏰ **Automatización** | Un scheduler marca cada hora como *atrasadas* las tareas vencidas |
 | 🔐 **Seguridad** | JWT, contraseñas con hash PBKDF2, reglas de fortaleza, límite de peticiones por IP y por usuario, permisos por proyecto |
 | 🌗 **Tema claro y oscuro** | Se recuerda entre sesiones y no parpadea al cargar |
@@ -65,7 +65,7 @@ Está pensado para freelancers, agencias y equipos de desarrollo de 2 a 15 perso
 <table>
   <tr>
     <td width="50%"><img src="docs/screenshots/clientes.png" alt="Clientes" /><p align="center"><b>Clientes</b>: embudo, búsqueda y filtros</p></td>
-    <td width="50%"><img src="docs/screenshots/kanban.png" alt="Tablero Kanban" /><p align="center"><b>Kanban</b>: tareas del proyecto por estado</p></td>
+    <td width="50%"><img src="docs/screenshots/kanban.png" alt="Tablero Kanban" /><p align="center"><b>Kanban</b>: arrastra las tareas entre columnas</p></td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/proyectos.png" alt="Proyectos" /><p align="center"><b>Proyectos</b>: propios y como colaborador</p></td>
@@ -365,11 +365,11 @@ npm run build
 - [x] Módulo de clientes con embudo comercial
 - [x] Dashboard con indicadores
 - [x] Docker Compose y datos de demo
+- [x] Arrastrar y soltar tareas en el Kanban
+- [x] Exportar clientes y tareas a CSV
 - [ ] Vincular clientes con proyectos
-- [ ] Arrastrar y soltar tareas en el Kanban
 - [ ] Notificaciones por correo de tareas por vencer
 - [ ] Migraciones de base de datos con Alembic
-- [ ] Exportar clientes y tareas a CSV
 
 ## Origen del proyecto
 

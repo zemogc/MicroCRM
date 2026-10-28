@@ -3,6 +3,7 @@ import api from "../../services/api";
 import StatusBadge from "../../components/StatusBadge";
 import { CLIENT_STATUS } from "../../constants/status";
 import { apiErrorMessage, formatDate } from "../../utils/format";
+import { downloadCsv } from "../../utils/csv";
 import {
   Users,
   Plus,
@@ -17,7 +18,8 @@ import {
   Loader,
   ChevronLeft,
   ChevronRight,
-  Contact
+  Contact,
+  Download
 } from "lucide-react";
 import "../Proyectos/Proyectos.css";
 import "./Clientes.css";
@@ -32,6 +34,17 @@ const EMPTY_FORM = {
   status: "lead",
   notes: ""
 };
+
+const CSV_COLUMNS = [
+  { header: "Nombre", value: (c) => c.name },
+  { header: "Empresa", value: (c) => c.company },
+  { header: "Correo", value: (c) => c.email },
+  { header: "Teléfono", value: (c) => c.phone },
+  { header: "Estado", value: (c) => CLIENT_STATUS[c.status]?.label ?? c.status },
+  { header: "Notas", value: (c) => c.notes },
+  { header: "Creado", value: (c) => c.created_at?.slice(0, 10) },
+  { header: "Actualizado", value: (c) => c.updated_at?.slice(0, 10) },
+];
 
 const STAT_CARDS = [
   { key: "", label: "Total clientes", className: "clientes-total-icon", icon: Contact },
@@ -56,6 +69,7 @@ export default function Clientes() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Esperar a que el usuario deje de escribir antes de buscar
   useEffect(() => {
@@ -98,6 +112,33 @@ export default function Clientes() {
 
   const totalClientes = counts.lead + counts.active + counts.inactive;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Exporta todos los clientes que cumplen la búsqueda y el filtro actuales (no solo la página visible)
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const rows = [];
+      for (let skip = 0; ; skip += 100) {
+        const res = await api.get("/api/clients/", {
+          params: {
+            skip,
+            limit: 100,
+            order_by: "name",
+            order_dir: "asc",
+            search: debouncedSearch || undefined,
+            status: statusFilter || undefined
+          }
+        });
+        rows.push(...res.data.items);
+        if (!res.data.has_more) break;
+      }
+      downloadCsv("clientes", CSV_COLUMNS, rows);
+    } catch (err) {
+      setError(apiErrorMessage(err, "No se pudo exportar los clientes"));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleFilter = (status) => {
     setStatusFilter(status);
@@ -253,6 +294,10 @@ export default function Clientes() {
             <option key={value} value={value}>{label}</option>
           ))}
         </select>
+        <button type="button" className="btn-export" onClick={handleExport} disabled={exporting || total === 0}>
+          {exporting ? <Loader size={18} className="spinner" /> : <Download size={18} />}
+          Exportar CSV
+        </button>
       </div>
 
       {/* Tabla */}
