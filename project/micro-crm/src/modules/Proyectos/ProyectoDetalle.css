@@ -94,17 +94,18 @@
 .btn-close-modal {
   width: 48px;
   height: 48px;
+  padding: 0;
   border-radius: 8px;
   border: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--bs-border-color);
 }
 
 .btn-close-modal:hover {
@@ -452,16 +453,6 @@
   justify-content: center;
   color: var(--bs-secondary-color);
   font-size: 14px;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
 }
 
 .task-status-display {
@@ -898,3 +889,22 @@
   }
 }
 
+
+/* Edición en línea del nombre y la descripción */
+.btn-edit-info {
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.header-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  max-width: 560px;
+}
+
+.header-edit-actions {
+  display: flex;
+  gap: 8px;
+}

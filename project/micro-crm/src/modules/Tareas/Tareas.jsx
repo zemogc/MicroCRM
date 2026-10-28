@@ -1,6 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
+import StatusBadge from "../../components/StatusBadge";
+import { TASK_STATUS } from "../../constants/status";
+import { apiErrorMessage, formatDate } from "../../utils/format";
 import {
   ListTodo,
   FolderKanban,
@@ -9,75 +12,69 @@ import {
   CheckCircle,
   Circle,
   Play,
-  X,
   AlertCircle,
   Loader,
-  Eye
+  Eye,
+  Send
 } from "lucide-react";
 import "./Tareas.css";
+
+const STAT_CARDS = [
+  { status: "pending", label: "Por hacer", icon: Circle, className: "pending-icon" },
+  { status: "in_progress", label: "En desarrollo", icon: Play, className: "progress-icon" },
+  { status: "overdue", label: "Atrasadas", icon: Clock, className: "overdue-icon" },
+  { status: "in_review", label: "En revisión", icon: Eye, className: "review-icon" },
+  { status: "completed", label: "Completadas", icon: CheckCircle, className: "completed-icon" },
+];
+
+// Siguiente paso que puede dar quien tiene la tarea asignada
+const NEXT_STEP = {
+  pending: { status: "in_progress", label: "Iniciar", icon: Play, className: "btn-start" },
+  in_progress: { status: "in_review", label: "A revisión", icon: Send, className: "btn-review" },
+  overdue: { status: "in_review", label: "A revisión", icon: Send, className: "btn-review" },
+};
 
 function Tareas() {
   const { user } = useAuth();
   const [tareas, setTareas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all"); // all, pending, in_progress, completed
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [updatingId, setUpdatingId] = useState(null);
 
-  useEffect(() => {
-    fetchUserTasks();
-  }, []);
-
-  const fetchUserTasks = async () => {
+  const fetchUserTasks = useCallback(async () => {
     try {
-      setLoading(true);
       setError("");
-      
       // Obtener todas las tareas asignadas al usuario actual
       const response = await api.get(`/api/tasks/user/${user.id}`);
       setTareas(response.data);
-      
     } catch (err) {
-      console.error("Error al cargar tareas del usuario:", err);
-      setError("Error al cargar las tareas");
+      setError(apiErrorMessage(err, "Error al cargar las tareas"));
     } finally {
       setLoading(false);
     }
+  }, [user.id]);
+
+  useEffect(() => {
+    fetchUserTasks();
+  }, [fetchUserTasks]);
+
+  const handleAdvance = async (tarea) => {
+    const next = NEXT_STEP[tarea.status];
+    try {
+      setUpdatingId(tarea.id);
+      const response = await api.put(`/api/tasks/${tarea.id}`, { status: next.status });
+      setTareas((prev) => prev.map((t) => (t.id === tarea.id ? response.data : t)));
+    } catch (err) {
+      setError(apiErrorMessage(err, "No se pudo actualizar la tarea"));
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      pending: { label: "Por hacer", color: "#6b7280", icon: Circle },
-      in_progress: { label: "En desarrollo", color: "#3b82f6", icon: Play },
-      overdue: { label: "Atrasado", color: "#f59e0b", icon: Clock },
-      in_review: { label: "En revisión", color: "#8b5cf6", icon: Eye },
-      completed: { label: "Hecho", color: "#22c55e", icon: CheckCircle },
-      cancelled: { label: "Cancelado", color: "#ef4444", icon: X }
-    };
-    
-    const config = statusConfig[status] || statusConfig.pending;
-    const Icon = config.icon;
-    
-    return (
-      <span className="status-badge" style={{ backgroundColor: `${config.color}20`, color: config.color }}>
-        <Icon size={16} strokeWidth={2.5} />
-        {config.label}
-      </span>
-    );
-  };
+  const getTasksByStatus = (status) => tareas.filter((t) => t.status === status);
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "Sin fecha";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("es-ES", { year: "numeric", month: "short", day: "numeric" });
-  };
-
-  const filteredTareas = filterStatus === "all" 
-    ? tareas 
-    : tareas.filter(tarea => tarea.status === filterStatus);
-
-  const getTasksByStatus = (status) => {
-    return tareas.filter(t => t.status === status);
-  };
+  const filteredTareas = filterStatus === "all" ? tareas : getTasksByStatus(filterStatus);
 
   if (loading) {
     return (
@@ -114,92 +111,37 @@ function Tareas() {
             <p>Total</p>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon pending-icon">
-            <Circle size={24} />
+        {STAT_CARDS.map(({ status, label, icon: Icon, className }) => (
+          <div className="stat-card" key={status}>
+            <div className={`stat-icon ${className}`}>
+              <Icon size={24} />
+            </div>
+            <div className="stat-info">
+              <h3>{getTasksByStatus(status).length}</h3>
+              <p>{label}</p>
+            </div>
           </div>
-          <div className="stat-info">
-            <h3>{getTasksByStatus("pending").length}</h3>
-            <p>Por hacer</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon progress-icon">
-            <Play size={24} />
-          </div>
-          <div className="stat-info">
-            <h3>{getTasksByStatus("in_progress").length}</h3>
-            <p>En desarrollo</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon overdue-icon">
-            <Clock size={24} />
-          </div>
-          <div className="stat-info">
-            <h3>{getTasksByStatus("overdue").length}</h3>
-            <p>Atrasadas</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon review-icon">
-            <Eye size={24} />
-          </div>
-          <div className="stat-info">
-            <h3>{getTasksByStatus("in_review").length}</h3>
-            <p>En revisión</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon completed-icon">
-            <CheckCircle size={24} />
-          </div>
-          <div className="stat-info">
-            <h3>{getTasksByStatus("completed").length}</h3>
-            <p>Completadas</p>
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Filtros */}
       <div className="filters-section">
         <div className="filter-buttons">
-          <button 
+          <button
             className={`filter-btn ${filterStatus === "all" ? "active" : ""}`}
             onClick={() => setFilterStatus("all")}
           >
             Todas ({tareas.length})
           </button>
-          <button 
-            className={`filter-btn ${filterStatus === "pending" ? "active" : ""}`}
-            onClick={() => setFilterStatus("pending")}
-          >
-            Por hacer ({getTasksByStatus("pending").length})
-          </button>
-          <button 
-            className={`filter-btn ${filterStatus === "in_progress" ? "active" : ""}`}
-            onClick={() => setFilterStatus("in_progress")}
-          >
-            En desarrollo ({getTasksByStatus("in_progress").length})
-          </button>
-          <button 
-            className={`filter-btn ${filterStatus === "overdue" ? "active" : ""}`}
-            onClick={() => setFilterStatus("overdue")}
-          >
-            Atrasadas ({getTasksByStatus("overdue").length})
-          </button>
-          <button 
-            className={`filter-btn ${filterStatus === "in_review" ? "active" : ""}`}
-            onClick={() => setFilterStatus("in_review")}
-          >
-            En revisión ({getTasksByStatus("in_review").length})
-          </button>
-          <button 
-            className={`filter-btn ${filterStatus === "completed" ? "active" : ""}`}
-            onClick={() => setFilterStatus("completed")}
-          >
-            Completadas ({getTasksByStatus("completed").length})
-          </button>
+          {STAT_CARDS.map(({ status, label }) => (
+            <button
+              key={status}
+              className={`filter-btn ${filterStatus === status ? "active" : ""}`}
+              onClick={() => setFilterStatus(status)}
+            >
+              {label} ({getTasksByStatus(status).length})
+            </button>
+          ))}
         </div>
       </div>
 
@@ -216,17 +158,14 @@ function Tareas() {
           <div className="empty-state">
             <ListTodo size={64} />
             <h3>
-              {filterStatus === "all" 
-                ? "No tienes tareas asignadas" 
-                : `No hay tareas ${filterStatus === "pending" ? "pendientes" : 
-                  filterStatus === "in_progress" ? "en desarrollo" : "completadas"}`
-              }
+              {filterStatus === "all"
+                ? "No tienes tareas asignadas"
+                : `No hay tareas en "${TASK_STATUS[filterStatus].label}"`}
             </h3>
             <p>
-              {filterStatus === "all" 
-                ? "Las tareas que te asignen aparecerán aquí" 
-                : "Cambia el filtro para ver otras tareas"
-              }
+              {filterStatus === "all"
+                ? "Las tareas que te asignen aparecerán aquí"
+                : "Cambia el filtro para ver otras tareas"}
             </p>
           </div>
         ) : (
@@ -239,51 +178,70 @@ function Tareas() {
                   <th>Estado</th>
                   <th>Fecha de Vencimiento</th>
                   <th>Creada</th>
+                  <th className="text-center">Acción</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredTareas.map((tarea) => (
-                  <tr key={tarea.id}>
-                    <td>
-                      <div className="tarea-name">
-                        <ListTodo size={18} />
-                        <div className="tarea-info">
-                          <strong>{tarea.title}</strong>
-                          {tarea.description && (
-                            <span className="tarea-description">
-                              {tarea.description}
-                            </span>
-                          )}
+                {filteredTareas.map((tarea) => {
+                  const next = NEXT_STEP[tarea.status];
+                  const NextIcon = next?.icon;
+                  return (
+                    <tr key={tarea.id}>
+                      <td>
+                        <div className="tarea-name">
+                          <ListTodo size={18} />
+                          <div className="tarea-info">
+                            <strong>{tarea.title}</strong>
+                            {tarea.description && (
+                              <span className="tarea-description">
+                                {tarea.description}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="project-info">
-                        <FolderKanban size={16} strokeWidth={2} />
-                        <span className="project-name">{tarea.project_name}</span>
-                      </div>
-                    </td>
-                    <td>
-                      {getStatusBadge(tarea.status)}
-                    </td>
-                    <td>
-                      {tarea.due_date ? (
+                      </td>
+                      <td>
+                        <div className="project-info">
+                          <FolderKanban size={16} strokeWidth={2} />
+                          <span className="project-name">{tarea.project_name}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <StatusBadge status={tarea.status} size={16} />
+                      </td>
+                      <td>
+                        {tarea.due_date ? (
+                          <span className="date-text">
+                            <Calendar size={14} />
+                            {formatDate(tarea.due_date)}
+                          </span>
+                        ) : (
+                          <span className="text-muted">Sin fecha</span>
+                        )}
+                      </td>
+                      <td>
                         <span className="date-text">
-                          <Calendar size={14} />
-                          {formatDate(tarea.due_date)}
+                          <Clock size={14} />
+                          {formatDate(tarea.created_at)}
                         </span>
-                      ) : (
-                        <span className="text-muted">Sin fecha</span>
-                      )}
-                    </td>
-                    <td>
-                      <span className="date-text">
-                        <Clock size={14} />
-                        {formatDate(tarea.created_at)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="text-center">
+                        {next ? (
+                          <button
+                            className={`btn-task-step ${next.className}`}
+                            onClick={() => handleAdvance(tarea)}
+                            disabled={updatingId === tarea.id}
+                          >
+                            {updatingId === tarea.id ? <Loader size={14} className="spinner" /> : <NextIcon size={14} />}
+                            {next.label}
+                          </button>
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

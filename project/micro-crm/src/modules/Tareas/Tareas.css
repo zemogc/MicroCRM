@@ -362,16 +362,6 @@
    STATUS BADGE
    ============================================ */
 
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
 /* ============================================
    EMPTY STATE
    ============================================ */
@@ -484,4 +474,41 @@
   .empty-state {
     padding: 40px 20px;
   }
+}
+
+/* ============================================
+   ACCIÓN RÁPIDA DE ESTADO
+   ============================================ */
+
+.btn-task-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-task-step.btn-start {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+
+.btn-task-step.btn-review {
+  background: rgba(139, 92, 246, 0.12);
+  color: #8b5cf6;
+}
+
+.btn-task-step:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+.btn-task-step:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }

@@ -1,4 +1,5 @@
 .theme-toggle {
+  padding: 0;
   background: var(--bs-body-bg);
   border: 3px solid var(--bs-primary);
   border-radius: 50%;

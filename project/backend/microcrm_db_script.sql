@@ -20,6 +20,22 @@ CREATE TABLE users (
 );
 CREATE UNIQUE INDEX ix_users_email ON users (email);
 
+CREATE TABLE clients (
+    name VARCHAR(100) NOT NULL,
+    company VARCHAR(100),
+    email VARCHAR(150),
+    phone VARCHAR(30),
+    status VARCHAR(20) NOT NULL,
+    notes VARCHAR(500),
+    id INTEGER NOT NULL AUTO_INCREMENT,
+    owner_id INTEGER NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY(owner_id) REFERENCES users (id) ON DELETE CASCADE
+);
+CREATE INDEX ix_clients_owner_id ON clients (owner_id);
+
 CREATE TABLE projects (
     name VARCHAR(100) NOT NULL,
     description VARCHAR(150),

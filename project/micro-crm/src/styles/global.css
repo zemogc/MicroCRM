@@ -4,29 +4,12 @@
   box-sizing: border-box;
 }
 
-/* Variables de color */
-:root {
-  --color-primary: #2a7ae4;
-  --color-secondary: #f4f4f9;
-  --color-text: #333;
-  --color-accent: #ffb703;
-}
-
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: var(--color-secondary);
-  color: var(--color-text);
   min-height: 100vh;
 }
 
-
-/* Contenedor principal */
-.container {
-  padding: 2rem;
-  
-}
-
-/* Tarjetas */
+/* Tarjetas (usadas por las pantallas de autenticación) */
 .card {
   background: white;
   border-radius: 10px;
@@ -35,27 +18,24 @@ body {
   margin-bottom: 1.5rem;
 }
 
-/* Botones */
-.btn {
-  background-color: var(--color-primary);
-  color: white;
-  padding: 0.6rem 1.2rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s;
+/* Campo de búsqueda con icono (Clientes, Equipo) */
+.search-field {
+  position: relative;
+  flex: 1;
+  min-width: 240px;
 }
 
-.btn:hover {
-  background-color: #1f5fb2;
+.search-field svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--bs-secondary-color);
+  pointer-events: none;
 }
 
-/* Formulario */
-form input {
-  display: block;
-  width: 100%;
-  margin: 0.5rem 0;
-  padding: 0.6rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+.search-field .form-control {
+  padding: 10px 14px 10px 42px;
+  border-radius: 10px;
+  border-width: 2px;
 }

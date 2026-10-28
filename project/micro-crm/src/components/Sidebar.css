@@ -69,6 +69,7 @@
 .toggle-btn {
   width: 32px;
   height: 32px;
+  padding: 0;
   border-radius: 6px;
   background: transparent;
   border: 1px solid var(--bs-border-color);

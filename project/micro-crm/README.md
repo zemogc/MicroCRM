@@ -1,16 +1,31 @@
-# React + Vite
+# MicroCRM · Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interfaz web de MicroCRM construida con **React 19**, **Vite** y **Bootstrap 5**.
 
-Currently, two official plugins are available:
+```bash
+cp .env.example .env    # VITE_API_URL=http://localhost:8000
+npm install
+npm run dev             # http://localhost:5173
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+| Script | Descripción |
+|---|---|
+| `npm run dev` | Servidor de desarrollo con recarga en caliente |
+| `npm run build` | Compilación de producción en `dist/` |
+| `npm run preview` | Sirve la compilación localmente |
+| `npm run lint` | Revisión con ESLint |
 
-## React Compiler
+## Estructura
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```
+src/
+├── components/   # Layout, Sidebar, PrivateRoute, ThemeToggle, StatusBadge
+├── constants/    # Catálogos de estados (tareas y clientes)
+├── context/      # AuthContext (sesión JWT) y ThemeContext (claro/oscuro)
+├── modules/      # Pantallas: Auth, Inicio, Clientes, Proyectos, Tareas, Equipo
+├── services/     # Cliente axios con token e interceptor de 401
+├── styles/       # Estilos globales
+└── utils/        # Formato de fechas y mensajes de error
+```
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+La documentación completa del proyecto está en el [README principal](../../README.md).

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 import {
@@ -26,11 +26,7 @@ function ProyectoVer({ proyecto, onClose }) {
 
   const isOwner = proyecto.id_user === user?.id;
 
-  useEffect(() => {
-    fetchProjectData();
-  }, [proyecto.id]);
-
-  const fetchProjectData = async () => {
+  const fetchProjectData = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -68,7 +64,11 @@ function ProyectoVer({ proyecto, onClose }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [proyecto]);
+
+  useEffect(() => {
+    fetchProjectData();
+  }, [fetchProjectData]);
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -236,7 +236,7 @@ function ProyectoVer({ proyecto, onClose }) {
                     <div className="member-info">
                       <h4>{member.user_name}</h4>
                       <p className="member-added">
-                        Agregado por {member.added_by_name}
+                        {member.user_email} · desde {formatDate(member.created_at)}
                       </p>
                     </div>
                     <div className="member-role">

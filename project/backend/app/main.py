@@ -13,7 +13,7 @@ from .core.exceptions import (
     general_exception_handler
 )
 from .core.scheduler import start_scheduler, stop_scheduler
-from .api.routes import auth, users, projects, tasks, project_members, project_roles
+from .api.routes import auth, users, projects, tasks, project_members, project_roles, clients, dashboard
 
 API_VERSION = "1.0.0"
 
@@ -76,7 +76,9 @@ def root():
             "projects": "/api/projects",
             "tasks": "/api/tasks",
             "project_members": "/api/project-members",
-            "project_roles": "/api/project-roles"
+            "project_roles": "/api/project-roles",
+            "clients": "/api/clients",
+            "dashboard": "/api/dashboard"
         }
     }
 
@@ -87,3 +89,5 @@ app.include_router(projects.router, prefix="/api")
 app.include_router(tasks.router, prefix="/api")
 app.include_router(project_members.router, prefix="/api")
 app.include_router(project_roles.router, prefix="/api")
+app.include_router(clients.router, prefix="/api")
+app.include_router(dashboard.router, prefix="/api")

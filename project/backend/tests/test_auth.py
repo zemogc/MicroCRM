@@ -64,3 +64,17 @@ def test_auth_rate_limit_returns_retry_after(client, monkeypatch):
     response = client.post("/api/auth/login", json=payload)
     assert response.status_code == 429
     assert "retry-after" in response.headers
+
+
+def test_change_password(client, owner):
+    wrong = owner.post("/api/auth/change-password", json={"current_password": "Otra12345", "new_password": "Nueva12345"})
+    assert wrong.status_code == 400
+
+    weak = owner.post("/api/auth/change-password", json={"current_password": PASSWORD, "new_password": "nueva"})
+    assert weak.status_code == 422
+
+    ok = owner.post("/api/auth/change-password", json={"current_password": PASSWORD, "new_password": "Nueva12345"})
+    assert ok.status_code == 204
+
+    assert client.post("/api/auth/login", json={"email": owner.email, "password": PASSWORD}).status_code == 401
+    assert client.post("/api/auth/login", json={"email": owner.email, "password": "Nueva12345"}).status_code == 200
