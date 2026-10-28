@@ -244,14 +244,57 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
     }
   };
 
+  // Actualización optimista: la tarjeta cambia de columna al instante y se revierte si la API lo rechaza
   const handleChangeTaskStatus = async (taskId, newStatus) => {
+    const previous = tasks;
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)));
     try {
-      await api.put(`/api/tasks/${taskId}`, { status: newStatus });
-      await fetchProjectData();
+      const response = await api.put(`/api/tasks/${taskId}`, { status: newStatus });
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? response.data : t)));
     } catch (err) {
-      console.error("Error al cambiar estado:", err);
-      alert("Error al cambiar estado");
+      setTasks(previous);
+      alert(err.response?.data?.detail || "Error al cambiar estado");
     }
+  };
+
+  // ============ ARRASTRAR Y SOLTAR ============
+
+  const [draggedTask, setDraggedTask] = useState(null);
+  const [dropTarget, setDropTarget] = useState(null);
+
+  // Mismas reglas que la API: el propietario mueve cualquier tarea; el colaborador solo las suyas
+  // y sin completarlas (eso lo aprueba el propietario). "Atrasado" lo asigna el sistema.
+  const COLLABORATOR_TARGETS = ["pending", "in_progress", "in_review"];
+  const canDrag = (task) => isOwner || task.assigned_to === user?.id;
+  const canDropTo = (task, status) =>
+    !!task &&
+    task.status !== status &&
+    status !== "overdue" &&
+    (isOwner || COLLABORATOR_TARGETS.includes(status));
+
+  const handleDragStart = (e, task) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(task.id));
+    setDraggedTask(task);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTask(null);
+    setDropTarget(null);
+  };
+
+  const handleDragOver = (e, status) => {
+    if (!canDropTo(draggedTask, status)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (dropTarget !== status) setDropTarget(status);
+  };
+
+  const handleDrop = (e, status) => {
+    e.preventDefault();
+    const task = draggedTask;
+    handleDragEnd();
+    if (canDropTo(task, status)) handleChangeTaskStatus(task.id, status);
   };
 
   // ============ HELPERS ============
@@ -363,7 +406,10 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
           {activeTab === "tasks" && (
             <div className="tasks-section">
               <div className="section-header">
-                <h3>Tareas del Proyecto</h3>
+                <div>
+                  <h3>Tareas del Proyecto</h3>
+                  <p className="kanban-hint">Arrastra las tarjetas entre columnas para cambiar su estado</p>
+                </div>
                 {isOwner && (
                   <button className="btn-add" onClick={() => setShowAddTaskModal(true)}>
                     <Plus size={18} strokeWidth={2} />
@@ -385,14 +431,32 @@ function ProyectoDetalle({ proyecto, onClose, onUpdate }) {
                   };
                   
                   return (
-                    <div key={status} className="kanban-column">
+                    <div
+                      key={status}
+                      className={[
+                        "kanban-column",
+                        draggedTask && canDropTo(draggedTask, status) ? "can-drop" : "",
+                        dropTarget === status ? "is-drop-target" : ""
+                      ].join(" ")}
+                      onDragOver={(e) => handleDragOver(e, status)}
+                      onDragLeave={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget)) setDropTarget(null);
+                      }}
+                      onDrop={(e) => handleDrop(e, status)}
+                    >
                       <div className="column-header">
                         <h4>{statusLabels[status]}</h4>
                         <span className="task-count">{statusTasks.length}</span>
                       </div>
                       <div className="column-tasks">
                         {statusTasks.map((task) => (
-                          <div key={task.id} className="task-card">
+                          <div
+                            key={task.id}
+                            className={`task-card ${canDrag(task) ? "is-draggable" : ""} ${draggedTask?.id === task.id ? "is-dragging" : ""}`}
+                            draggable={canDrag(task)}
+                            onDragStart={(e) => handleDragStart(e, task)}
+                            onDragEnd={handleDragEnd}
+                          >
                             <div className="task-card-header">
                               <h5>{task.title}</h5>
                               <div className="task-actions">
