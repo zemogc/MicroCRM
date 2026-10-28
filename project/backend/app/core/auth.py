@@ -1,23 +1,32 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlmodel import Session, select
-from typing import Optional
+from typing import Annotated, Optional
 from .security import decode_token
 from .database import get_session
+from .rate_limit import rate_limit_api
+from .settings import get_settings
 from ..models.user import User
 
-security = HTTPBearer()
+# auto_error=False so a missing token is a 401 (not FastAPI's default 403)
+security = HTTPBearer(auto_error=False)
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     session: Session = Depends(get_session)
 ) -> User:
     """
     Dependency to get the current authenticated user from JWT token.
     Raises 401 if token is invalid or user not found.
     """
-    token = credentials.credentials
-    payload = decode_token(token)
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    payload = decode_token(credentials.credentials)
     
     if payload is None:
         raise HTTPException(
@@ -67,3 +76,17 @@ async def get_current_active_user(
     """
     return current_user
 
+async def get_rate_limited_user(
+    request: Request,
+    current_user: User = Depends(get_current_active_user)
+) -> User:
+    """
+    Authenticated user with the per-user API rate limit applied.
+    """
+    await rate_limit_api(request, get_settings().rate_limit_api_per_min, str(current_user.id))
+    return current_user
+
+
+# Shorthands for route signatures
+SessionDep = Annotated[Session, Depends(get_session)]
+CurrentUser = Annotated[User, Depends(get_rate_limited_user)]

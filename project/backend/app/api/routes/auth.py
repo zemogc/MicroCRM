@@ -4,8 +4,8 @@ from ...models.user import User, UserRegister, UserLogin, UserLoginResponse, Use
 from ...core.database import get_session
 from ...core.security import hash_password, verify_password, create_access_token
 from ...core.settings import get_settings
-from ...core.auth import get_current_active_user
-from ...core.rate_limit import rate_limit_auth, rate_limit_api
+from ...core.auth import CurrentUser
+from ...core.rate_limit import rate_limit_auth
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -86,12 +86,6 @@ async def login_user(
     )
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(
-    request: Request,
-    current_user: User = Depends(get_current_active_user),
-    session: Session = Depends(get_session)
-) -> UserResponse:
+def get_current_user_info(current_user: CurrentUser) -> UserResponse:
     """Get current authenticated user information"""
-    settings = get_settings()
-    await rate_limit_api(request, settings.rate_limit_api_per_min, str(current_user.id))
     return UserResponse.model_validate(current_user)
