@@ -6,7 +6,7 @@ import {
   Users, 
   FolderKanban, 
   ListTodo,
-  Settings, 
+  UserCog, 
   LogOut,
   ChevronLeft,
   ChevronRight
@@ -47,9 +47,9 @@ export default function Sidebar() {
       label: "Mis Tareas"
     },
     {
-      path: "/admin",
-      icon: Settings,
-      label: "Administración"
+      path: "/equipo",
+      icon: UserCog,
+      label: "Equipo y cuenta"
     }
   ];
 

@@ -32,12 +32,10 @@ const authService = {
 
   // Logout
   logout: () => {
-    // Limpiar solo los datos de autenticación
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    
-    // Opcional: Limpiar también los datos temporales de la aplicación
-    // (estos datos deberían venir del backend, no de localStorage)
+
+    // Datos que versiones anteriores guardaban en el navegador
     localStorage.removeItem('clientes');
     localStorage.removeItem('proyectos');
     localStorage.removeItem('usuarios');

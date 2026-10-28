@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
             const currentUser = await authService.getCurrentUser();
             setUser(currentUser);
             localStorage.setItem('user', JSON.stringify(currentUser));
-          } catch (err) {
+          } catch {
             // Si el token es inválido, limpiar
             authService.logout();
             setUser(null);
@@ -72,6 +72,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Actualizar los datos del usuario tras editar el perfil
+  const updateUser = (updatedUser) => {
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
   // Función de logout
   const logout = () => {
     authService.logout();
@@ -85,6 +91,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    updateUser,
     isAuthenticated: !!user,
   };
 
