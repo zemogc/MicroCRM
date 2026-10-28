@@ -132,3 +132,8 @@
     width: 100%;
   }
 }
+
+.cliente-projects {
+  color: var(--bs-primary);
+  font-weight: 500;
+}

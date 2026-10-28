@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Query
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func, update
 from typing import Optional
 from ...models.client import Client, ClientCreate, ClientUpdate, ClientResponse
+from ...models.project import Project
 from ...models.user import User
 from ...models.pagination import PaginatedResponse
 from ...core.auth import CurrentUser, SessionDep
@@ -16,6 +17,13 @@ def get_own_client(session: Session, client_id: int, current_user: User) -> Clie
     if not client or client.owner_id != current_user.id:
         raise HTTPException(status_code=404, detail="Client not found")
     return client
+
+def build_client_response(client: Client, session: Session) -> ClientResponse:
+    """Client with the number of projects linked to it"""
+    projects_count = session.exec(
+        select(func.count()).select_from(Project).where(Project.client_id == client.id)
+    ).one()
+    return ClientResponse.model_validate({**client.model_dump(), "projects_count": projects_count})
 
 @router.get("/", response_model=PaginatedResponse[ClientResponse])
 def list_clients(
@@ -47,7 +55,7 @@ def list_clients(
     clients = session.exec(statement.offset(skip).limit(limit)).all()
 
     return PaginatedResponse(
-        items=[ClientResponse.model_validate(client) for client in clients],
+        items=[build_client_response(client, session) for client in clients],
         total=total,
         skip=skip,
         limit=limit,
@@ -61,12 +69,12 @@ def create_client(payload: ClientCreate, session: SessionDep, current_user: Curr
     session.add(client)
     session.commit()
     session.refresh(client)
-    return ClientResponse.model_validate(client)
+    return build_client_response(client, session)
 
 @router.get("/{client_id}", response_model=ClientResponse)
 def get_client(client_id: int, session: SessionDep, current_user: CurrentUser) -> ClientResponse:
     """Get client by ID"""
-    return ClientResponse.model_validate(get_own_client(session, client_id, current_user))
+    return build_client_response(get_own_client(session, client_id, current_user), session)
 
 @router.put("/{client_id}", response_model=ClientResponse)
 def update_client(client_id: int, payload: ClientUpdate, session: SessionDep, current_user: CurrentUser) -> ClientResponse:
@@ -83,12 +91,14 @@ def update_client(client_id: int, payload: ClientUpdate, session: SessionDep, cu
     session.add(client)
     session.commit()
     session.refresh(client)
-    return ClientResponse.model_validate(client)
+    return build_client_response(client, session)
 
 @router.delete("/{client_id}", status_code=204)
 def delete_client(client_id: int, session: SessionDep, current_user: CurrentUser):
     """Delete client by ID"""
     client = get_own_client(session, client_id, current_user)
+    # Explicit unlink: SQLite databases upgraded in place have no FK constraint for client_id
+    session.exec(update(Project).where(Project.client_id == client.id).values(client_id=None))
     session.delete(client)
     session.commit()
     return None

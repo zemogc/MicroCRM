@@ -19,6 +19,8 @@ def _clean_name(v: Optional[str]) -> Optional[str]:
 class ProjectBase(SQLModel):
     name: str = Field(max_length=100)
     description: Optional[str] = Field(default=None, max_length=150)
+    # Client the project is for (optional, must belong to the project owner)
+    client_id: Optional[int] = Field(default=None, foreign_key="clients.id", ondelete="SET NULL")
 
     @field_validator("name")
     @classmethod
@@ -43,6 +45,7 @@ class ProjectCreate(ProjectBase):
 class ProjectUpdate(SQLModel):
     name: Optional[str] = Field(default=None, max_length=100)
     description: Optional[str] = Field(default=None, max_length=150)
+    client_id: Optional[int] = None
 
     @field_validator("name")
     @classmethod
@@ -59,3 +62,5 @@ class ProjectResponse(SQLModel):
     # Include creator information
     creator_name: Optional[str] = None
     creator_email: Optional[str] = None
+    client_id: Optional[int] = None
+    client_name: Optional[str] = None

@@ -39,6 +39,12 @@ PROJECTS = [
      [("Laura Méndez", "Administrador"), ("Sofía Vargas", "Desarrollador")]),
 ]
 
+# Projects of the demo user linked to one of her clients
+PROJECT_CLIENTS = {
+    "Rediseño tienda online": "Mariana Restrepo",
+    "App de fidelización": "Julián Cárdenas",
+}
+
 # (project, title, description, status, assignee, due in days)
 TASKS = [
     ("Rediseño tienda online", "Wireframes del checkout", "Flujo en 3 pasos", "completed", "Sofía Vargas", -6),
@@ -82,9 +88,20 @@ def seed(session: Session) -> bool:
         users[name] = user
     session.flush()
 
+    clients = {}
+    owner_id = users["Laura Méndez"].id
+    for name, company, email, phone, status, notes in CLIENTS:
+        client = Client(name=name, company=company, email=email, phone=phone,
+                        status=status, notes=notes, owner_id=owner_id)
+        session.add(client)
+        clients[name] = client
+    session.flush()
+
     projects = {}
     for owner, name, description, members in PROJECTS:
-        project = Project(name=name, description=description, id_user=users[owner].id)
+        client = clients.get(PROJECT_CLIENTS.get(name))
+        project = Project(name=name, description=description, id_user=users[owner].id,
+                          client_id=client.id if client else None)
         session.add(project)
         session.flush()
         projects[name] = project
@@ -108,11 +125,6 @@ def seed(session: Session) -> bool:
             assigned_to=users[assignee].id if assignee else None,
             due_date=now + timedelta(days=due_in) if due_in is not None else None,
         ))
-
-    owner_id = users["Laura Méndez"].id
-    for name, company, email, phone, status, notes in CLIENTS:
-        session.add(Client(name=name, company=company, email=email, phone=phone,
-                           status=status, notes=notes, owner_id=owner_id))
 
     session.commit()
     return True

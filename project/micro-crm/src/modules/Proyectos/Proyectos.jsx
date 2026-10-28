@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
+import { fetchAllClients } from "../../services/clientsService";
 import { 
   Plus, 
   FolderKanban, 
@@ -24,11 +25,8 @@ function Proyectos() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    id_user: user?.id || 0
-  });
+  const [formData, setFormData] = useState({ name: "", description: "", client_id: "" });
+  const [misClientes, setMisClientes] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [selectedProyecto, setSelectedProyecto] = useState(null);
   const [modoEdicion, setModoEdicion] = useState(false);
@@ -104,20 +102,14 @@ function Proyectos() {
 
   const handleOpenModal = () => {
     setShowModal(true);
-    setFormData({
-      name: "",
-      description: "",
-      id_user: user?.id || 0
-    });
+    setFormData({ name: "", description: "", client_id: "" });
+    // Clientes para el selector (opcional)
+    fetchAllClients().then(setMisClientes).catch(() => setMisClientes([]));
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setFormData({
-      name: "",
-      description: "",
-      id_user: user?.id || 0
-    });
+    setFormData({ name: "", description: "", client_id: "" });
   };
 
   const handleChange = (e) => {
@@ -141,8 +133,9 @@ function Proyectos() {
       setError("");
       
       await api.post("/api/projects/", {
-        ...formData,
-        id_user: user.id
+        name: formData.name,
+        description: formData.description,
+        client_id: formData.client_id ? Number(formData.client_id) : null
       });
       
       // Refrescar la lista de proyectos
@@ -279,9 +272,9 @@ function Proyectos() {
               <thead>
                 <tr>
                   <th>Proyecto</th>
+                  <th>Cliente</th>
                   <th>Descripción</th>
                   <th>Creador</th>
-                  <th>Creado</th>
                   <th>Actualizado</th>
                   <th className="text-center">Acciones</th>
                 </tr>
@@ -301,6 +294,13 @@ function Proyectos() {
                       </div>
                     </td>
                     <td>
+                      {proyecto.client_name ? (
+                        <span className="client-chip">{proyecto.client_name}</span>
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
+                    <td>
                       <span className="text-muted">
                         {proyecto.description || "Sin descripción"}
                       </span>
@@ -313,11 +313,6 @@ function Proyectos() {
                     <td>
                       <span className="date-text">
                         <Calendar size={14} />
-                        {formatDate(proyecto.created_at)}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="date-text">
                         {formatDate(proyecto.updated_at)}
                       </span>
                     </td>
@@ -417,6 +412,28 @@ function Proyectos() {
                       ></textarea>
                       <small className="form-text text-muted">
                         Máximo 150 caracteres
+                      </small>
+                    </div>
+                    <div className="mb-3">
+                      <label htmlFor="client_id" className="form-label">
+                        Cliente
+                      </label>
+                      <select
+                        className="form-select"
+                        id="client_id"
+                        name="client_id"
+                        value={formData.client_id}
+                        onChange={handleChange}
+                      >
+                        <option value="">Sin cliente</option>
+                        {misClientes.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}{c.company ? ` · ${c.company}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <small className="form-text text-muted">
+                        Opcional. Para quién es el proyecto.
                       </small>
                     </div>
                   </div>
