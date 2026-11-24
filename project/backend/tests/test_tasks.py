@@ -94,3 +94,12 @@ def test_filter_and_search(owner, project):
 
     found = owner.get("/api/tasks/", params={"search": "readme"}).json()
     assert [t["title"] for t in found["items"]] == ["Escribir README"]
+
+
+def test_due_date_with_timezone_is_stored_in_utc(owner, project):
+    task = create_task(owner, project, due_date="2026-01-01T10:00:00-05:00")
+    assert task["due_date"] == "2026-01-01T15:00:00"
+    moved = owner.put(f"/api/tasks/{task['id']}", json={"due_date": "2026-02-01T08:30:00+02:00"})
+    assert moved.json()["due_date"] == "2026-02-01T06:30:00"
+    naive = create_task(owner, project, due_date="2026-03-01")  # lo que envía el frontend
+    assert naive["due_date"] == "2026-03-01T00:00:00"

@@ -1,7 +1,7 @@
 from sqlmodel import SQLModel, Field
 from pydantic import field_validator
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from ..core.clock import utcnow
 
 # Kanban flow: pending -> in_progress -> in_review -> completed
@@ -23,6 +23,16 @@ def _clean_title(v: Optional[str]) -> Optional[str]:
     return v.strip()
 
 
+def _to_utc_naive(v: Optional[datetime]) -> Optional[datetime]:
+    """Fechas con zona horaria se pasan a UTC sin zona, como se guardan (ver core.clock).
+
+    Sin esto, "10:00-05:00" quedaba guardado como 10:00 UTC y la tarea vencía 5 horas antes.
+    """
+    if v is not None and v.tzinfo is not None:
+        return v.astimezone(timezone.utc).replace(tzinfo=None)
+    return v
+
+
 class TaskBase(SQLModel):
     project_id: int = Field(foreign_key="projects.id", ondelete="CASCADE")
     title: str = Field(max_length=150)
@@ -40,6 +50,11 @@ class TaskBase(SQLModel):
     @classmethod
     def validate_status(cls, v):
         return _validate_status(v)
+
+    @field_validator("due_date")
+    @classmethod
+    def validate_due_date(cls, v):
+        return _to_utc_naive(v)
 
 class Task(TaskBase, table=True):
     __tablename__ = "tasks"
@@ -67,6 +82,11 @@ class TaskUpdate(SQLModel):
     @classmethod
     def validate_status(cls, v):
         return _validate_status(v)
+
+    @field_validator("due_date")
+    @classmethod
+    def validate_due_date(cls, v):
+        return _to_utc_naive(v)
 
 class TaskResponse(SQLModel):
     id: int
