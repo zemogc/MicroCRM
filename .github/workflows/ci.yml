@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Un push nuevo al mismo PR cancela la corrida anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: API (FastAPI) · pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: project/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          # La misma versión de la imagen Docker de la API.
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: project/backend/requirements*.txt
+      - name: Instalar dependencias
+        run: pip install -r requirements-dev.txt
+      - name: Pytest
+        run: python -m pytest -ra
+
+  web:
+    name: Web (React) · ESLint y build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: project/micro-crm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: project/micro-crm/package-lock.json
+      - name: Instalar dependencias
+        run: npm ci --no-audit --no-fund
+      - name: ESLint
+        run: npm run lint
+      - name: Build
+        run: npm run build
