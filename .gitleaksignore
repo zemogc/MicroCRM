@@ -1,0 +1,4 @@
+# Falsos positivos revisados a mano el 2026-11-25. Cada linea es la huella exacta de un hallazgo;
+# un secreto nuevo NO queda cubierto y hace fallar el CI.
+# Documento ya eliminado de main: respuesta de ejemplo con un JWT recortado ("eyJ...").
+7d915173ea32f1483865a55fe8e68ceb3916efb4:project/backend/README_MYSQL_BACKEND_INTEGRATION.md:generic-api-key:143
