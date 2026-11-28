@@ -23,8 +23,8 @@ jobs:
       run:
         working-directory: project/backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           # La misma versión de la imagen Docker de la API.
           python-version: "3.12"
@@ -43,8 +43,8 @@ jobs:
       run:
         working-directory: project/micro-crm
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
