@@ -1,0 +1,32 @@
+# Actualizaciones semanales y agrupadas: un solo PR por ecosistema, para no llenar el repositorio de PR sueltos.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/project/micro-crm"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    groups:
+      dependencias:
+        patterns: ["*"]
+
+  - package-ecosystem: "pip"
+    directory: "/project/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    groups:
+      dependencias:
+        patterns: ["*"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    groups:
+      dependencias:
+        patterns: ["*"]
